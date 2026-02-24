@@ -5,6 +5,31 @@ const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 
 let refreshTimer = null;
 
+// ── URL filter helpers ────────────────────────────────────────────────────────
+//
+// Supports ?team=<name> to filter displayed matchups.
+// Matching is case-insensitive substring search on either team name.
+
+function getTeamFilter() {
+  return new URLSearchParams(window.location.search).get('team')?.trim() || null;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function applyTeamFilter(rounds, team) {
+  const q = team.toLowerCase();
+  return rounds
+    .map(round => ({
+      ...round,
+      matchups: round.matchups.filter(m =>
+        m.teamA.toLowerCase().includes(q) || m.teamB.toLowerCase().includes(q)
+      ),
+    }))
+    .filter(round => round.matchups.length > 0);
+}
+
 // ── Fetch via Google Visualization JSONP ──────────────────────────────────────
 //
 // The gviz/tq endpoint supports a JSONP-style call via the `responseHandler`
@@ -172,10 +197,15 @@ function renderRound(round) {
 </section>`.trim();
 }
 
-function renderAll(rounds) {
+function renderAll(rounds, teamFilter) {
+  const banner = teamFilter
+    ? `<p class="filter-notice">Showing matches for: <strong>${escHtml(teamFilter)}</strong></p>`
+    : '';
   const html = rounds.map(renderRound).filter(Boolean).join('\n');
-  document.getElementById('tournament-content').innerHTML =
-    html || '<p class="loading">Sheet is empty — add data to your Google Sheet to see matches here.</p>';
+  const empty = teamFilter
+    ? '<p class="loading">No matches found for that team.</p>'
+    : '<p class="loading">Sheet is empty — add data to your Google Sheet to see matches here.</p>';
+  document.getElementById('tournament-content').innerHTML = banner + (html || empty);
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -192,8 +222,10 @@ async function loadData() {
   setStatus('Loading…', 'loading');
   try {
     const table  = await fetchSheetData();
-    const rounds = parseRounds(table);
-    renderAll(rounds);
+    let rounds   = parseRounds(table);
+    const filter = getTeamFilter();
+    if (filter) rounds = applyTeamFilter(rounds, filter);
+    renderAll(rounds, filter);
     const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setStatus(`Updated ${t} · refreshes every 30 s`, 'live');
   } catch (err) {
