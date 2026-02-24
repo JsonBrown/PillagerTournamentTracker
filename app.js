@@ -56,7 +56,7 @@ function parseCourts(headers) {
   const map = {};
 
   headers.forEach((label, i) => {
-    if (i < 2 || !label) return;                     // skip Teams / Time cols
+    if (i < 2 || !label) return;                     // skip col A (ignored) and col B (time of day)
     const m = label.match(/^(Court\s+\d+)\s+(.+)$/i);
     if (!m) return;
 
@@ -93,7 +93,6 @@ function parseRounds(table) {
 
   return table.rows.map(row => ({
     time:     cell(row, 1),
-    label:    cell(row, 0),
     matchups: courts.map(ct => ({
       court:     ct.name,
       hasScores: ct.hasScores,
@@ -148,7 +147,6 @@ function renderRound(round) {
 <section class="round">
   <div class="round-header">
     <span class="round-time">${round.time}</span>
-    ${round.label ? `<span class="round-label">${round.label}</span>` : ''}
   </div>
   <div class="courts-row">
     ${cards || '<span class="no-matches">No matches scheduled</span>'}
