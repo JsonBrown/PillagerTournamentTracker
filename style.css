@@ -1,0 +1,226 @@
+/* ── Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  min-height: 100vh;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.site-header {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f0f6fc;
+}
+
+/* ── Status bar ───────────────────────────────────────── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #8b949e;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-idle    { background: #484f58; }
+.dot-live    { background: #3fb950; animation: pulse 2s infinite; }
+.dot-error   { background: #f85149; }
+.dot-loading { background: #d29922; animation: pulse 1s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+#refresh-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  transition: background 0.15s;
+}
+
+#refresh-btn:hover { background: #30363d; }
+
+/* ── Main content ─────────────────────────────────────── */
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 24px;
+}
+
+/* ── Round section ────────────────────────────────────── */
+.round {
+  margin-bottom: 36px;
+}
+
+.round-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #21262d;
+}
+
+.round-time {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f0f6fc;
+}
+
+.round-label {
+  font-size: 0.8rem;
+  color: #8b949e;
+  background: #21262d;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+/* ── Courts row ───────────────────────────────────────── */
+.courts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* ── Court card ───────────────────────────────────────── */
+.court-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-top: 3px solid #30363d; /* overridden per court */
+  border-radius: 8px;
+  padding: 14px 16px;
+  min-width: 175px;
+  flex: 0 1 auto;
+}
+
+/* Per-court accent colours */
+.court-1 { border-top-color: #e85d04; }
+.court-2 { border-top-color: #7c3aed; }
+.court-4 { border-top-color: #0891b2; }
+.court-5 { border-top-color: #059669; }
+.court-6 { border-top-color: #d97706; }
+.court-7 { border-top-color: #dc2626; }
+
+.court-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  margin-bottom: 12px;
+}
+
+/* ── Match layout ─────────────────────────────────────── */
+.match-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: #0d1117;
+}
+
+.team-row.winner {
+  background: #0d2818;
+  outline: 1px solid #238636;
+}
+
+.team-players {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #f0f6fc;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.team-score {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #8b949e;
+  min-width: 28px;
+  text-align: right;
+}
+
+.team-row.winner .team-score {
+  color: #3fb950;
+}
+
+.vs-divider {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #484f58;
+  text-transform: uppercase;
+  padding: 1px 0;
+}
+
+/* ── Empty/loading/error states ───────────────────────── */
+.loading, .error-msg {
+  text-align: center;
+  padding: 48px 16px;
+  font-size: 1rem;
+  color: #8b949e;
+}
+
+.error-msg { color: #f85149; }
+
+.no-matches {
+  font-size: 0.85rem;
+  color: #484f58;
+  font-style: italic;
+  padding: 6px 0;
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 600px) {
+  main { padding: 16px; }
+  h1   { font-size: 1.1rem; }
+  .court-card { min-width: 150px; }
+  .team-score { font-size: 1.2rem; }
+}

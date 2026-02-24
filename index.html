@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pillager Tournament Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <h1>Pillager Tournament Tracker</h1>
+      <div class="status-bar">
+        <span id="status-dot" class="dot dot-idle"></span>
+        <span id="status-text">Loading…</span>
+        <button id="refresh-btn" onclick="manualRefresh()">&#8635; Refresh</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="tournament-content">
+    <p class="loading">Loading tournament data…</p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
