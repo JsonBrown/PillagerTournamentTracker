@@ -91,8 +91,26 @@ function parseRounds(table) {
     return v != null ? String(v).trim() : '';
   };
 
+  // gviz returns time-of-day columns as [hours, minutes, seconds, ms].
+  // Prefer the sheet's pre-formatted string (.f) when present; otherwise
+  // build "9AM" / "9:30AM" from the array.
+  const timeCell = (row, idx) => {
+    const col = row.c?.[idx];
+    if (!col) return '';
+    if (col.f != null) return String(col.f).trim();
+    const v = col.v;
+    if (v == null) return '';
+    if (Array.isArray(v)) {
+      const [h, m] = v;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const h12  = h % 12 || 12;
+      return m === 0 ? `${h12}${ampm}` : `${h12}:${String(m).padStart(2, '0')}${ampm}`;
+    }
+    return String(v).trim();
+  };
+
   return table.rows.map(row => ({
-    time:     cell(row, 1),
+    time:     timeCell(row, 1),
     matchups: courts.map(ct => ({
       court:     ct.name,
       hasScores: ct.hasScores,
