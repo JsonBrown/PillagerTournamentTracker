@@ -3,7 +3,9 @@ const SHEET_ID        = '152jcyxelkCBTir9-U_bcK7D8y1vIvqw1s_FzZ9pCDKY';
 const REFRESH_MS      = 30_000;   // auto-refresh every 30 seconds
 const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 
-let refreshTimer = null;
+let refreshTimer    = null;
+let cachedRounds    = null;
+let activeTeamFilter = '';
 
 // ── Fetch via Google Visualization JSONP ──────────────────────────────────────
 //
@@ -122,6 +124,37 @@ function parseRounds(table) {
   }));
 }
 
+// ── Team filter ───────────────────────────────────────────────────────────────
+
+function collectTeams(rounds) {
+  const teams = new Set();
+  for (const round of rounds) {
+    for (const m of round.matchups) {
+      if (m.teamA) teams.add(m.teamA);
+      if (m.teamB) teams.add(m.teamB);
+    }
+  }
+  return [...teams].sort((a, b) => a.localeCompare(b));
+}
+
+function populateTeamFilter(teams) {
+  const sel = document.getElementById('team-filter');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">All Teams</option>'
+    + teams.map(t => `<option value="${t}"${t === prev ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+  activeTeamFilter = sel.value;
+  sel.disabled = teams.length === 0;
+}
+
+function filterByTeam(team) {
+  activeTeamFilter = team;
+  if (cachedRounds) renderAll(cachedRounds);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ── HTML rendering ────────────────────────────────────────────────────────────
 
 function courtClass(name) {
@@ -161,17 +194,37 @@ function renderAll(rounds) {
   }
 
   // Columns = time slots; rows = courts (transposed view)
-  const courts = validRounds[0].matchups;
+  const allCourts = validRounds[0].matchups;
+
+  // When a team filter is active, only show courts that have that team in at least one time slot
+  let courtIndices = allCourts.map((_, i) => i);
+  if (activeTeamFilter) {
+    courtIndices = courtIndices.filter(i =>
+      validRounds.some(r => {
+        const m = r.matchups[i];
+        return m.teamA === activeTeamFilter || m.teamB === activeTeamFilter;
+      })
+    );
+    if (courtIndices.length === 0) {
+      document.getElementById('tournament-content').innerHTML =
+        '<p class="loading">No matches found for the selected team.</p>';
+      return;
+    }
+  }
 
   const headerCells = validRounds
     .map(r => `<th class="time-header">${r.time}</th>`)
     .join('');
 
-  const bodyRows = courts.map((_, courtIdx) => {
-    const courtName = validRounds[0].matchups[courtIdx].court;
-    const cells = validRounds.map(round =>
-      `<td class="matchup-cell">${renderMatchup(round.matchups[courtIdx])}</td>`
-    ).join('');
+  const bodyRows = courtIndices.map(courtIdx => {
+    const courtName = allCourts[courtIdx].court;
+    const cells = validRounds.map(round => {
+      const m = round.matchups[courtIdx];
+      const show = !activeTeamFilter
+        || m.teamA === activeTeamFilter
+        || m.teamB === activeTeamFilter;
+      return `<td class="matchup-cell">${show ? renderMatchup(m) : '<span class="no-matches">—</span>'}</td>`;
+    }).join('');
     return `<tr><th class="court-header ${courtClass(courtName)}">${courtName}</th>${cells}</tr>`;
   }).join('');
 
@@ -194,6 +247,8 @@ async function loadData() {
   try {
     const table  = await fetchSheetData();
     const rounds = parseRounds(table);
+    cachedRounds = rounds;
+    populateTeamFilter(collectTeams(rounds));
     renderAll(rounds);
     const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setStatus(`Updated ${t} · refreshes every 30 s`, 'live');

@@ -78,6 +78,29 @@ h1 {
 
 #refresh-btn:hover { background: #30363d; }
 
+/* ── Header controls (filter + status bar) ────────── */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#team-filter {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  max-width: 200px;
+}
+
+#team-filter:hover:not(:disabled) { background: #30363d; }
+#team-filter:disabled { opacity: 0.5; cursor: default; }
+
 /* ── Main content ─────────────────────────────────────── */
 main {
   max-width: 1400px;
