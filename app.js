@@ -218,9 +218,13 @@ function renderAll(rounds) {
 
   const bodyRows = courtIndices.map(courtIdx => {
     const courtName = allCourts[courtIdx].court;
-    const cells = validRounds.map(round =>
-      `<td class="matchup-cell">${renderMatchup(round.matchups[courtIdx])}</td>`
-    ).join('');
+    const cells = validRounds.map(round => {
+      const m = round.matchups[courtIdx];
+      const show = !activeTeamFilter
+        || m.teamA === activeTeamFilter
+        || m.teamB === activeTeamFilter;
+      return `<td class="matchup-cell">${show ? renderMatchup(m) : '<span class="no-matches">—</span>'}</td>`;
+    }).join('');
     return `<tr><th class="court-header ${courtClass(courtName)}">${courtName}</th>${cells}</tr>`;
   }).join('');
 
