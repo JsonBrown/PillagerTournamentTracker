@@ -130,7 +130,7 @@ function courtClass(name) {
 }
 
 function renderMatchup(m) {
-  if (!m.teamA && !m.teamB) return '';   // nothing to show
+  if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
 
   const sA    = m.scoreA !== '' ? Number(m.scoreA) : null;
   const sB    = m.scoreB !== '' ? Number(m.scoreB) : null;
@@ -141,41 +141,42 @@ function renderMatchup(m) {
   const scoreTag = (s) =>
     s != null ? `<span class="team-score">${s}</span>` : '';
 
-  return `
-<div class="court-card ${courtClass(m.court)}">
-  <div class="court-name">${m.court}</div>
-  <div class="match-teams">
-    <div class="team-row${aWins ? ' winner' : ''}">
-      <span class="team-players">${m.teamA || '—'}</span>${scoreTag(sA)}
-    </div>
-    <div class="vs-divider">vs</div>
-    <div class="team-row${bWins ? ' winner' : ''}">
-      <span class="team-players">${m.teamB || '—'}</span>${scoreTag(sB)}
-    </div>
+  return `<div class="match-teams">
+  <div class="team-row${aWins ? ' winner' : ''}">
+    <span class="team-players">${m.teamA || '—'}</span>${scoreTag(sA)}
   </div>
-</div>`.trim();
-}
-
-function renderRound(round) {
-  if (!round.time) return '';   // skip rows without a time value
-
-  const cards = round.matchups.map(renderMatchup).filter(Boolean).join('\n');
-
-  return `
-<section class="round">
-  <div class="round-header">
-    <span class="round-time">${round.time}</span>
+  <div class="vs-divider">vs</div>
+  <div class="team-row${bWins ? ' winner' : ''}">
+    <span class="team-players">${m.teamB || '—'}</span>${scoreTag(sB)}
   </div>
-  <div class="courts-row">
-    ${cards || '<span class="no-matches">No matches scheduled</span>'}
-  </div>
-</section>`.trim();
+</div>`;
 }
 
 function renderAll(rounds) {
-  const html = rounds.map(renderRound).filter(Boolean).join('\n');
+  const validRounds = rounds.filter(r => r.time);
+  if (validRounds.length === 0) {
+    document.getElementById('tournament-content').innerHTML =
+      '<p class="loading">Sheet is empty — add data to your Google Sheet to see matches here.</p>';
+    return;
+  }
+
+  // Columns = time slots; rows = courts (transposed view)
+  const courts = validRounds[0].matchups;
+
+  const headerCells = validRounds
+    .map(r => `<th class="time-header">${r.time}</th>`)
+    .join('');
+
+  const bodyRows = courts.map((_, courtIdx) => {
+    const courtName = validRounds[0].matchups[courtIdx].court;
+    const cells = validRounds.map(round =>
+      `<td class="matchup-cell">${renderMatchup(round.matchups[courtIdx])}</td>`
+    ).join('');
+    return `<tr><th class="court-header ${courtClass(courtName)}">${courtName}</th>${cells}</tr>`;
+  }).join('');
+
   document.getElementById('tournament-content').innerHTML =
-    html || '<p class="loading">Sheet is empty — add data to your Google Sheet to see matches here.</p>';
+    `<div class="schedule-wrapper"><table class="schedule-table"><thead><tr><th class="corner-cell"></th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
