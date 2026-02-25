@@ -11,10 +11,15 @@
   <header class="site-header">
     <div class="header-inner">
       <h1>Pillager Tournament Tracker</h1>
-      <div class="status-bar">
-        <span id="status-dot" class="dot dot-idle"></span>
-        <span id="status-text">Loading…</span>
-        <button id="refresh-btn" onclick="manualRefresh()">&#8635; Refresh</button>
+      <div class="header-controls">
+        <select id="team-filter" onchange="filterByTeam(this.value)" disabled>
+          <option value="">All Teams</option>
+        </select>
+        <div class="status-bar">
+          <span id="status-dot" class="dot dot-idle"></span>
+          <span id="status-text">Loading…</span>
+          <button id="refresh-btn" onclick="manualRefresh()">&#8635; Refresh</button>
+        </div>
       </div>
     </div>
   </header>
