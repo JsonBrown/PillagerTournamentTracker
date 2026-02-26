@@ -1,3 +1,38 @@
+/* ── Design tokens ────────────────────────────────────── */
+:root {
+  /* Background layers */
+  --color-bg:             #0d1117;
+  --color-surface:        #161b22;
+  --color-surface-raised: #21262d;
+
+  /* Borders */
+  --color-border:         #30363d;
+
+  /* Text */
+  --color-text:           #e6edf3;
+  --color-text-bright:    #f0f6fc;
+  --color-text-muted:     #8b949e;
+  --color-text-subtle:    #484f58;
+  --color-btn-text:       #c9d1d9;
+
+  /* State colours */
+  --color-live:           #3fb950;
+  --color-error:          #f85149;
+  --color-loading:        #d29922;
+
+  /* Winner highlight — derived from live-green + bg */
+  --color-winner-bg:      color-mix(in srgb, var(--color-bg) 80%, var(--color-live) 20%);
+  --color-winner-border:  color-mix(in srgb, var(--color-live) 60%, black 40%);
+
+  /* Per-court accent colours */
+  --color-court-1:        #e85d04;
+  --color-court-2:        #7c3aed;
+  --color-court-4:        #0891b2;
+  --color-court-5:        #059669;
+  --color-court-6:        #d97706;
+  --color-court-7:        #dc2626;
+}
+
 /* ── Reset & Base ─────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -7,15 +42,15 @@
 
 body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #0d1117;
-  color: #e6edf3;
+  background: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
 }
 
 /* ── Header ───────────────────────────────────────────── */
 .site-header {
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
   padding: 14px 24px;
   position: sticky;
   top: 0;
@@ -36,7 +71,7 @@ h1 {
   font-size: 1.35rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #f0f6fc;
+  color: var(--color-text-bright);
 }
 
 /* ── Status bar ───────────────────────────────────────── */
@@ -45,7 +80,7 @@ h1 {
   align-items: center;
   gap: 8px;
   font-size: 0.82rem;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
 .dot {
@@ -55,10 +90,10 @@ h1 {
   flex-shrink: 0;
 }
 
-.dot-idle    { background: #484f58; }
-.dot-live    { background: #3fb950; animation: pulse 2s infinite; }
-.dot-error   { background: #f85149; }
-.dot-loading { background: #d29922; animation: pulse 1s infinite; }
+.dot-idle    { background: var(--color-text-subtle); }
+.dot-live    { background: var(--color-live); animation: pulse 2s infinite; }
+.dot-error   { background: var(--color-error); }
+.dot-loading { background: var(--color-loading); animation: pulse 1s infinite; }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -66,9 +101,9 @@ h1 {
 }
 
 #refresh-btn {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #c9d1d9;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-btn-text);
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
@@ -76,7 +111,7 @@ h1 {
   transition: background 0.15s;
 }
 
-#refresh-btn:hover { background: #30363d; }
+#refresh-btn:hover { background: var(--color-border); }
 
 /* ── Header controls (filter + status bar) ────────── */
 .header-controls {
@@ -87,9 +122,9 @@ h1 {
 }
 
 #team-filter {
-  background: #21262d;
-  border: 1px solid #30363d;
-  color: #c9d1d9;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-btn-text);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.82rem;
@@ -98,7 +133,7 @@ h1 {
   max-width: 200px;
 }
 
-#team-filter:hover:not(:disabled) { background: #30363d; }
+#team-filter:hover:not(:disabled) { background: var(--color-border); }
 #team-filter:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Main content ─────────────────────────────────────── */
@@ -127,9 +162,9 @@ main {
 .time-header {
   font-size: 1.05rem;
   font-weight: 700;
-  color: #f0f6fc;
+  color: var(--color-text-bright);
   padding: 10px 14px;
-  border-bottom: 2px solid #30363d;
+  border-bottom: 2px solid var(--color-border);
   text-align: left;
   white-space: nowrap;
 }
@@ -139,27 +174,27 @@ main {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #8b949e;
+  color: var(--color-text-muted);
   padding: 14px 16px;
-  border-left: 3px solid #30363d; /* overridden per court */
-  border-bottom: 1px solid #21262d;
+  border-left: 3px solid var(--color-border); /* overridden per court */
+  border-bottom: 1px solid var(--color-surface-raised);
   text-align: left;
   vertical-align: top;
   white-space: nowrap;
 }
 
 /* Per-court accent colours */
-.court-1 { border-left-color: #e85d04; }
-.court-2 { border-left-color: #7c3aed; }
-.court-4 { border-left-color: #0891b2; }
-.court-5 { border-left-color: #059669; }
-.court-6 { border-left-color: #d97706; }
-.court-7 { border-left-color: #dc2626; }
+.court-1 { border-left-color: var(--color-court-1); }
+.court-2 { border-left-color: var(--color-court-2); }
+.court-4 { border-left-color: var(--color-court-4); }
+.court-5 { border-left-color: var(--color-court-5); }
+.court-6 { border-left-color: var(--color-court-6); }
+.court-7 { border-left-color: var(--color-court-7); }
 
 .matchup-cell {
   padding: 10px 14px;
-  border-left: 1px solid #21262d;
-  border-bottom: 1px solid #21262d;
+  border-left: 1px solid var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-surface-raised);
   vertical-align: top;
   min-width: 180px;
 }
@@ -178,18 +213,18 @@ main {
   gap: 10px;
   padding: 6px 8px;
   border-radius: 5px;
-  background: #0d1117;
+  background: var(--color-bg);
 }
 
 .team-row.winner {
-  background: #0d2818;
-  outline: 1px solid #238636;
+  background: var(--color-winner-bg);
+  outline: 1px solid var(--color-winner-border);
 }
 
 .team-players {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--color-text-bright);
   flex: 1;
   white-space: nowrap;
 }
@@ -197,13 +232,13 @@ main {
 .team-score {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #8b949e;
+  color: var(--color-text-muted);
   min-width: 28px;
   text-align: right;
 }
 
 .team-row.winner .team-score {
-  color: #3fb950;
+  color: var(--color-live);
 }
 
 .vs-divider {
@@ -211,7 +246,7 @@ main {
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: #484f58;
+  color: var(--color-text-subtle);
   text-transform: uppercase;
   padding: 1px 0;
 }
@@ -221,14 +256,14 @@ main {
   text-align: center;
   padding: 48px 16px;
   font-size: 1rem;
-  color: #8b949e;
+  color: var(--color-text-muted);
 }
 
-.error-msg { color: #f85149; }
+.error-msg { color: var(--color-error); }
 
 .no-matches {
   font-size: 0.85rem;
-  color: #484f58;
+  color: var(--color-text-subtle);
   font-style: italic;
   padding: 6px 0;
 }
