@@ -3,6 +3,11 @@ const SHEET_ID        = '152jcyxelkCBTir9-U_bcK7D8y1vIvqw1s_FzZ9pCDKY';
 const REFRESH_MS      = 30_000;   // auto-refresh every 30 seconds
 const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 
+// Read optional ?tab=<sheet name> from the page URL.
+// Matches the gviz `sheet` parameter (tab name, case-sensitive).
+// Omitting the parameter selects the first tab (default gviz behaviour).
+const TAB_NAME = new URLSearchParams(window.location.search).get('tab') || null;
+
 let refreshTimer    = null;
 let cachedRounds    = null;
 let activeTeamFilter = '';
@@ -42,8 +47,9 @@ function fetchSheetData() {
     }
 
     script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('Network error')); };
+    const tabParam = TAB_NAME ? `&sheet=${encodeURIComponent(TAB_NAME)}` : '';
     script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`
-               + `?tqx=out:json;responseHandler:${cbName}`;
+               + `?tqx=out:json;responseHandler:${cbName}${tabParam}`;
     document.head.appendChild(script);
   });
 }
