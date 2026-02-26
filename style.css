@@ -320,3 +320,8 @@ main {
   .court-card { min-width: 150px; }
   .team-score { font-size: 1.2rem; }
 }
+@media (max-width: 425px) {
+  #theme-btn {
+    min-height: 41px;
+  }
+}
