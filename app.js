@@ -273,7 +273,28 @@ function manualRefresh() {
   loadData().then(scheduleRefresh);
 }
 
+// ── Theme toggle ──────────────────────────────────────────────────────────────
+
+function effectiveTheme() {
+  const stored = localStorage.getItem('theme');
+  if (stored) return stored;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  const btn = document.getElementById('theme-btn');
+  if (btn) btn.textContent = theme === 'light' ? '☾' : '☀';
+}
+
+function toggleTheme() {
+  const next = effectiveTheme() === 'light' ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  applyTheme(effectiveTheme());
   loadData().then(scheduleRefresh);
 });
