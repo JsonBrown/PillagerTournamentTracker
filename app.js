@@ -192,10 +192,13 @@ function renderMatchup(m, showWinner) {
 }
 
 function renderAll(rounds) {
+  const sx = window.scrollX, sy = window.scrollY;
+
   const validRounds = rounds.filter(r => r.time);
   if (validRounds.length === 0) {
     document.getElementById('tournament-content').innerHTML =
       '<p class="loading">Sheet is empty — add data to your Google Sheet to see matches here.</p>';
+    window.scrollTo(sx, sy);
     return;
   }
 
@@ -214,6 +217,7 @@ function renderAll(rounds) {
     if (courtIndices.length === 0) {
       document.getElementById('tournament-content').innerHTML =
         '<p class="loading">No matches found for the selected team.</p>';
+      window.scrollTo(sx, sy);
       return;
     }
   }
@@ -239,6 +243,7 @@ function renderAll(rounds) {
 
   document.getElementById('tournament-content').innerHTML =
     `<div class="schedule-wrapper"><table class="schedule-table"><thead><tr><th class="corner-cell"></th>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+  window.scrollTo(sx, sy);
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -264,8 +269,10 @@ async function loadData() {
   } catch (err) {
     console.error('[Tournament Tracker]', err);
     setStatus('Failed to load — retrying in 30 s', 'error');
+    const sx = window.scrollX, sy = window.scrollY;
     document.getElementById('tournament-content').innerHTML =
       `<p class="error-msg">Could not load sheet data: ${err.message}</p>`;
+    window.scrollTo(sx, sy);
   }
 }
 
