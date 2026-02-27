@@ -168,14 +168,14 @@ function courtClass(name) {
   return `court-${n}`;
 }
 
-function renderMatchup(m) {
+function renderMatchup(m, showWinner) {
   if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
 
   const sA    = m.scoreA !== '' ? Number(m.scoreA) : null;
   const sB    = m.scoreB !== '' ? Number(m.scoreB) : null;
   const both  = sA != null && sB != null;
-  const aWins = both && sA > sB;
-  const bWins = both && sB > sA;
+  const aWins = showWinner && both && sA > sB;
+  const bWins = showWinner && both && sB > sA;
 
   const scoreTag = (s) =>
     s != null ? `<span class="team-score">${s}</span>` : '';
@@ -224,12 +224,15 @@ function renderAll(rounds) {
 
   const bodyRows = courtIndices.map(courtIdx => {
     const courtName = allCourts[courtIdx].court;
-    const cells = validRounds.map(round => {
+    const cells = validRounds.map((round, roundIdx) => {
       const m = round.matchups[courtIdx];
+      const isLastRound = roundIdx === validRounds.length - 1;
+      const nextRoundHasData = isLastRound
+        || validRounds[roundIdx + 1].matchups.some(nm => nm.teamA !== '' || nm.teamB !== '');
       const show = !activeTeamFilter
         || m.teamA === activeTeamFilter
         || m.teamB === activeTeamFilter;
-      return `<td class="matchup-cell">${show ? renderMatchup(m) : '<span class="no-matches">—</span>'}</td>`;
+      return `<td class="matchup-cell">${show ? renderMatchup(m, nextRoundHasData) : '<span class="no-matches">—</span>'}</td>`;
     }).join('');
     return `<tr><th class="court-header ${courtClass(courtName)}">${courtName}</th>${cells}</tr>`;
   }).join('');
