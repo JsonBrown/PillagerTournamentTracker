@@ -7,6 +7,7 @@ const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 // Matches the gviz `sheet` parameter (tab name, case-sensitive).
 // Omitting the parameter selects the first tab (default gviz behaviour).
 const TAB_NAME = new URLSearchParams(window.location.search).get('tab') || null;
+const TEAM_FILTER_KEY = 'teamFilter' + (TAB_NAME ? '_' + TAB_NAME : '');
 
 let refreshTimer    = null;
 let cachedRounds    = null;
@@ -144,7 +145,7 @@ function collectTeams(rounds) {
 
 function populateTeamFilter(teams) {
   const sel = document.getElementById('team-filter');
-  const prev = sel.value;
+  const prev = localStorage.getItem(TEAM_FILTER_KEY) || sel.value;
   sel.innerHTML = '<option value="">All Teams</option>'
     + teams.map(t => `<option value="${t}"${t === prev ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
   activeTeamFilter = sel.value;
@@ -153,6 +154,11 @@ function populateTeamFilter(teams) {
 
 function filterByTeam(team) {
   activeTeamFilter = team;
+  if (team) {
+    localStorage.setItem(TEAM_FILTER_KEY, team);
+  } else {
+    localStorage.removeItem(TEAM_FILTER_KEY);
+  }
   if (cachedRounds) renderAll(cachedRounds);
 }
 
