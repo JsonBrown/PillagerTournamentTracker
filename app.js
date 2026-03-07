@@ -80,11 +80,9 @@ function parseCourts(headers) {
     else if (field === 'score b') { c.scoreBCol = i; c.hasScores = true; }
   });
 
-  // Sort by court number
-  return Object.values(map).sort((a, b) => {
-    const n = s => parseInt(s.match(/\d+/)?.[0] ?? 0, 10);
-    return n(a.name) - n(b.name);
-  });
+  // Sort alphabetically and tag each court with its sorted index
+  const sorted = Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+  return sorted.map((c, i) => ({ ...c, idx: i }));
 }
 
 // ── Turn a gviz table into plain round objects ────────────────────────────────
@@ -121,6 +119,7 @@ function parseRounds(table) {
     time:     timeCell(row, 2),
     matchups: courts.map(ct => ({
       court:     ct.name,
+      idx:       ct.idx,
       hasScores: ct.hasScores,
       teamA:     cell(row, ct.teamACol),
       teamB:     cell(row, ct.teamBCol),
@@ -163,9 +162,8 @@ function escapeHtml(str) {
 
 // ── HTML rendering ────────────────────────────────────────────────────────────
 
-function courtClass(name) {
-  const n = name.match(/\d+/)?.[0] ?? '';
-  return `court-${n}`;
+function courtClass(idx) {
+  return `court-${idx}`;
 }
 
 function renderMatchup(m) {
@@ -235,7 +233,7 @@ function renderAll(rounds) {
         || m.teamB === activeTeamFilter;
       return `<td class="matchup-cell">${show ? renderMatchup(m) : '<span class="no-matches">—</span>'}</td>`;
     }).join('');
-    return `<tr><th class="court-header ${courtClass(courtName)}">${courtName}</th>${cells}</tr>`;
+    return `<tr><th class="court-header ${courtClass(allCourts[courtIdx].idx)}">${courtName}</th>${cells}</tr>`;
   }).join('');
 
   document.getElementById('tournament-content').innerHTML =
