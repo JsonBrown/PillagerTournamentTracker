@@ -65,7 +65,7 @@ function parseCourts(headers) {
 
   headers.forEach((label, i) => {
     if (i < 3 || !label) return;                     // skip col A (options), col B (ignored), col C (time of day)
-    const m = label.match(/^(Court\s+\d+)\s+(.+)$/i);
+    const m = label.match(/^(.*Court\s+#?\d+)\s+(.+)$/i);
     if (!m) return;
 
     const courtName = m[1];
