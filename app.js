@@ -56,9 +56,9 @@ function fetchSheetData() {
 
 // ── Parse column headers → court definitions ──────────────────────────────────
 //
-// Handles two column naming patterns from the sheet:
-//   "Court 1 Team A" / "Court 1 Score A" / "Court 1 Team B" / "Court 1 Score B"
-//   "Court 4 A"      / "Court 4 B"   (no score columns)
+// Expects column headers of the form:
+//   "{court name} Team A" / "{court name} Team B"
+//   "{court name} Score A" / "{court name} Score B"
 
 function parseCourts(headers) {
   const map = {};
@@ -74,8 +74,8 @@ function parseCourts(headers) {
     if (!map[courtName]) map[courtName] = { name: courtName, hasScores: false };
     const c = map[courtName];
 
-    if      (field === 'team a' || field === 'a') c.teamACol  = i;
-    else if (field === 'team b' || field === 'b') c.teamBCol  = i;
+    if      (field === 'team a')  c.teamACol  = i;
+    else if (field === 'team b')  c.teamBCol  = i;
     else if (field === 'score a') { c.scoreACol = i; c.hasScores = true; }
     else if (field === 'score b') { c.scoreBCol = i; c.hasScores = true; }
   });
