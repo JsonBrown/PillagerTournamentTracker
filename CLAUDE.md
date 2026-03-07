@@ -72,12 +72,11 @@ Auto-refresh is driven by `scheduleRefresh()` (setTimeout chain). Manual refresh
 
 Column A is **ignored** (reserved for notes/comments).
 Column B is the **time-of-day** for each round (displayed as e.g. `9AM`, `9:30AM`).
-Columns C onward define courts. Two naming patterns are supported:
+Columns C onward define courts. Headers must follow the pattern:
 
-| Pattern | Columns required |
-|---|---|
-| Full (with scores) | `Court N Team A`, `Court N Score A`, `Court N Team B`, `Court N Score B` |
-| Compact (no scores) | `Court N A`, `Court N B` |
+| Columns required |
+|---|
+| `{Court Name} Team A`, `{Court Name} Score A`, `{Court Name} Team B`, `{Court Name} Score B` |
 
 Courts are sorted numerically by their number. Rows without a time value are skipped.
 
