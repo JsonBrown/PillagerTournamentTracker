@@ -64,7 +64,7 @@ function parseCourts(headers) {
   const map = {};
 
   headers.forEach((label, i) => {
-    if (i < 2 || !label) return;                     // skip col A (ignored) and col B (time of day)
+    if (i < 3 || !label) return;                     // skip col A (options), col B (ignored), col C (time of day)
     const m = label.match(/^(Court\s+\d+)\s+(.+)$/i);
     if (!m) return;
 
@@ -118,7 +118,7 @@ function parseRounds(table) {
   };
 
   return table.rows.map(row => ({
-    time:     timeCell(row, 1),
+    time:     timeCell(row, 2),
     matchups: courts.map(ct => ({
       court:     ct.name,
       hasScores: ct.hasScores,
