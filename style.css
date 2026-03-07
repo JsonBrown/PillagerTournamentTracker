@@ -24,13 +24,19 @@
   --color-winner-bg:      color-mix(in srgb, var(--color-bg) 80%, var(--color-live) 20%);
   --color-winner-border:  color-mix(in srgb, var(--color-live) 60%, black 40%);
 
-  /* Per-court accent colours */
-  --color-court-1:        #e85d04;
-  --color-court-2:        #7c3aed;
-  --color-court-4:        #0891b2;
-  --color-court-5:        #059669;
-  --color-court-6:        #d97706;
-  --color-court-7:        #dc2626;
+  /* Per-court accent colours (index-based, assigned by alphabetical sort order) */
+  --color-court-0:        #e85d04;  /* orange      */
+  --color-court-1:        #7c3aed;  /* purple      */
+  --color-court-2:        #0891b2;  /* cyan        */
+  --color-court-3:        #059669;  /* green       */
+  --color-court-4:        #d97706;  /* amber       */
+  --color-court-5:        #dc2626;  /* red         */
+  --color-court-6:        #2563eb;  /* blue        */
+  --color-court-7:        #db2777;  /* pink        */
+  --color-court-8:        #65a30d;  /* lime        */
+  --color-court-9:        #0d9488;  /* teal        */
+  --color-court-10:       #9333ea;  /* violet      */
+  --color-court-11:       #ea580c;  /* deep orange */
 }
 
 /* ── Light theme ──────────────────────────────────────── */
@@ -240,13 +246,19 @@ main {
   white-space: nowrap;
 }
 
-/* Per-court accent colours */
-.court-1 { border-left-color: var(--color-court-1); }
-.court-2 { border-left-color: var(--color-court-2); }
-.court-4 { border-left-color: var(--color-court-4); }
-.court-5 { border-left-color: var(--color-court-5); }
-.court-6 { border-left-color: var(--color-court-6); }
-.court-7 { border-left-color: var(--color-court-7); }
+/* Per-court accent colours (index-based) */
+.court-0  { border-left-color: var(--color-court-0);  }
+.court-1  { border-left-color: var(--color-court-1);  }
+.court-2  { border-left-color: var(--color-court-2);  }
+.court-3  { border-left-color: var(--color-court-3);  }
+.court-4  { border-left-color: var(--color-court-4);  }
+.court-5  { border-left-color: var(--color-court-5);  }
+.court-6  { border-left-color: var(--color-court-6);  }
+.court-7  { border-left-color: var(--color-court-7);  }
+.court-8  { border-left-color: var(--color-court-8);  }
+.court-9  { border-left-color: var(--color-court-9);  }
+.court-10 { border-left-color: var(--color-court-10); }
+.court-11 { border-left-color: var(--color-court-11); }
 
 .matchup-cell {
   padding: 10px 14px;
