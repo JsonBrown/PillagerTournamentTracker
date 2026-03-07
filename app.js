@@ -244,6 +244,24 @@ function renderAll(rounds) {
   if (newWrapper) { newWrapper.scrollLeft = sx; newWrapper.scrollTop = sy; }
 }
 
+// ── Title ─────────────────────────────────────────────────────────────────────
+
+function setTitle(table) {
+  const name = table.rows?.[0]?.c?.[0]?.v;
+  if (name) {
+    const title = String(name).trim();
+    document.querySelector('h1').textContent = title;
+    document.title = title;
+  }
+
+  const logoUrl = table.rows?.[1]?.c?.[0]?.v;
+  const img = document.getElementById('site-logo');
+  if (logoUrl && img) {
+    img.src = String(logoUrl).trim();
+    img.hidden = false;
+  }
+}
+
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 function setStatus(text, state /* 'live' | 'loading' | 'error' | 'idle' */) {
@@ -258,6 +276,7 @@ async function loadData() {
   setStatus('Loading…', 'loading');
   try {
     const table  = await fetchSheetData();
+    setTitle(table);
     const rounds = parseRounds(table);
     cachedRounds = rounds;
     populateTeamFilter(collectTeams(rounds));

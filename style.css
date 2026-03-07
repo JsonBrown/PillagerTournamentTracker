@@ -98,6 +98,18 @@ body {
   gap: 8px;
 }
 
+.site-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#site-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
 h1 {
   font-size: 1.35rem;
   font-weight: 700;
