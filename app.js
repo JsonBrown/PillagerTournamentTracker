@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!card) return;
     const [rawA, rawB] = card.dataset.sets.split('|');
     const [teamAName, teamBName] = (card.dataset.teams || '|').split('|');
-    const { setsA, setsB, len } = setsToMatchScore(rawA, rawB);
+    const { matchA, matchB, setsA, setsB, len } = setsToMatchScore(rawA, rawB);
     const rows = Array.from({ length: len }, (_, i) =>
       `<div class="set-row">
         <span class="set-label">Set ${i + 1}</span>
@@ -437,28 +437,46 @@ document.addEventListener('DOMContentLoaded', () => {
       const pdB = sB.pointsScored - sB.pointsAllowed;
       const fmt = n => n > 0 ? `+${n}` : `${n}`;
       const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
+      // Compute this match's contribution per team
+      let mSetsWonA = 0, mSetsLostA = 0, mPSA = 0, mPAA = 0;
+      let mSetsWonB = 0, mSetsLostB = 0, mPSB = 0, mPAB = 0;
+      for (let i = 0; i < len; i++) {
+        if (setsA[i] > setsB[i]) { mSetsWonA++; mSetsLostB++; }
+        else if (setsB[i] > setsA[i]) { mSetsWonB++; mSetsLostA++; }
+        mPSA += setsA[i]; mPAA += setsB[i];
+        mPSB += setsB[i]; mPAB += setsA[i];
+      }
+      const mWinA = matchA > matchB ? 1 : 0;
+      const mWinB = matchB > matchA ? 1 : 0;
+      const mPDA = mPSA - mPAA;
+      const mPDB = mPSB - mPAB;
+
+      // statDefs: [label, totalA, totalB, isPd, matchDeltaA, matchDeltaB]
       const statDefs = [
-        ['Wins',              sA.matchesWon,    sB.matchesWon,    false],
+        ['Wins',              sA.matchesWon,    sB.matchesWon,    false, mWinA,    mWinB],
         ...(hasSets ? [
-          ['Sets Won',        sA.setsWon,       sB.setsWon,       false],
-          ['Sets Lost',       sA.setsLost,      sB.setsLost,      false],
-          ['Points Scored',   sA.pointsScored,  sB.pointsScored,  false],
-          ['Points Allowed',  sA.pointsAllowed, sB.pointsAllowed, false],
-          ['Point Differential', pdA,           pdB,              true],
+          ['Sets Won',        sA.setsWon,       sB.setsWon,       false, mSetsWonA, mSetsWonB],
+          ['Sets Lost',       sA.setsLost,      sB.setsLost,      false, mSetsLostA, mSetsLostB],
+          ['Points Scored',   sA.pointsScored,  sB.pointsScored,  false, mPSA,     mPSB],
+          ['Points Allowed',  sA.pointsAllowed, sB.pointsAllowed, false, mPAA,     mPAB],
+          ['Point Differential', pdA,           pdB,              true,  mPDA,     mPDB],
         ] : []),
       ];
       const teamList = (name, vals) =>
         `<div class="stats-team-block">
           <div class="stats-team-heading">${escapeHtml(name)}</div>
           <ul class="stats-list">
-            ${vals.map(([label, v, , isPd]) =>
-              `<li><span class="stat-label">${label}:</span> <span class="${isPd ? pdClass(v) : ''}">${isPd ? fmt(v) : v}</span></li>`
-            ).join('')}
+            ${vals.map(([label, v, , isPd, delta]) => {
+              const deltaHtml = delta != null
+                ? ` <span class="stat-delta">(${isPd ? fmt(delta) : delta})</span>`
+                : '';
+              return `<li><span class="stat-label">${label}:</span> <span class="${isPd ? pdClass(v) : ''}">${isPd ? fmt(v) : v}</span>${deltaHtml}</li>`;
+            }).join('')}
           </ul>
         </div>`;
       statsHtml = `<div class="stats-section">
         ${teamList(teamAName, statDefs)}
-        ${teamList(teamBName, statDefs.map(([l, , vB, isPd]) => [l, vB, null, isPd]))}
+        ${teamList(teamBName, statDefs.map(([l, , vB, isPd, , dB]) => [l, vB, null, isPd, dB]))}
       </div>`;
     }
 
