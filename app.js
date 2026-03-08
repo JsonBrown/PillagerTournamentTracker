@@ -9,8 +9,9 @@ const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 const TAB_NAME = new URLSearchParams(window.location.search).get('tab') || null;
 const TEAM_FILTER_KEY = 'teamFilter' + (TAB_NAME ? '_' + TAB_NAME : '');
 
-let refreshTimer    = null;
-let cachedRounds    = null;
+let refreshTimer     = null;
+let cachedRounds     = null;
+let cachedStandings  = null;
 let activeTeamFilter = '';
 
 // ── Fetch via Google Visualization JSONP ──────────────────────────────────────
@@ -143,6 +144,55 @@ function collectTeams(rounds) {
   return [...teams].sort((a, b) => a.localeCompare(b));
 }
 
+// ── Tournament standings ───────────────────────────────────────────────────────
+
+function computeStandings(rounds) {
+  const stats = new Map();
+  let hasSets = false;
+
+  const ensureTeam = name => {
+    if (!stats.has(name)) {
+      stats.set(name, { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 });
+    }
+    return stats.get(name);
+  };
+
+  for (const round of rounds) {
+    for (const m of round.matchups) {
+      if (!m.teamA || !m.teamB) continue;
+      if (m.scoreA === '' || m.scoreB === '') continue;
+
+      if (String(m.scoreA).includes(',') || String(m.scoreB).includes(',')) {
+        hasSets = true;
+        const { matchA, matchB, setsA, setsB, len } = setsToMatchScore(m.scoreA, m.scoreB);
+        const tA = ensureTeam(m.teamA);
+        const tB = ensureTeam(m.teamB);
+        if (matchA > matchB) tA.matchesWon++;
+        else if (matchB > matchA) tB.matchesWon++;
+        for (let i = 0; i < len; i++) {
+          tA.setsWon      += setsA[i] > setsB[i] ? 1 : 0;
+          tA.setsLost     += setsB[i] > setsA[i] ? 1 : 0;
+          tA.pointsScored += setsA[i];
+          tA.pointsAllowed+= setsB[i];
+          tB.setsWon      += setsB[i] > setsA[i] ? 1 : 0;
+          tB.setsLost     += setsA[i] > setsB[i] ? 1 : 0;
+          tB.pointsScored += setsB[i];
+          tB.pointsAllowed+= setsA[i];
+        }
+      } else {
+        const nA = Number(m.scoreA), nB = Number(m.scoreB);
+        if (isNaN(nA) || isNaN(nB)) continue;
+        const tA = ensureTeam(m.teamA);
+        const tB = ensureTeam(m.teamB);
+        if (nA > nB) tA.matchesWon++;
+        else if (nB > nA) tB.matchesWon++;
+      }
+    }
+  }
+
+  return { stats, hasSets };
+}
+
 function populateTeamFilter(teams) {
   const sel = document.getElementById('team-filter');
   const prev = localStorage.getItem(TEAM_FILTER_KEY) || sel.value;
@@ -172,25 +222,53 @@ function courtClass(idx) {
   return `court-${idx}`;
 }
 
+function setsToMatchScore(scoreA, scoreB) {
+  const setsA = String(scoreA).split(',').map(s => Number(s.trim()));
+  const setsB = String(scoreB).split(',').map(s => Number(s.trim()));
+  const len = Math.min(setsA.length, setsB.length);
+  let matchA = 0, matchB = 0;
+  for (let i = 0; i < len; i++) {
+    if (setsA[i] > setsB[i]) matchA++;
+    else if (setsB[i] > setsA[i]) matchB++;
+  }
+  return { matchA, matchB, setsA, setsB, len };
+}
+
 function renderMatchup(m) {
   if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
 
-  const sA    = m.scoreA !== '' ? Number(m.scoreA) : null;
-  const sB    = m.scoreB !== '' ? Number(m.scoreB) : null;
+  let displayA = m.scoreA, displayB = m.scoreB;
+  let sA = m.scoreA !== '' ? Number(m.scoreA) : null;
+  let sB = m.scoreB !== '' ? Number(m.scoreB) : null;
+  let setData = null;
+
+  if (String(m.scoreA).includes(',') || String(m.scoreB).includes(',')) {
+    const result = setsToMatchScore(m.scoreA, m.scoreB);
+    displayA = result.matchA;
+    displayB = result.matchB;
+    sA = result.matchA;
+    sB = result.matchB;
+    setData = result;
+  }
+
   const both  = sA != null && sB != null;
   const aWins = both && sA > sB;
   const bWins = both && sB > sA;
 
   const scoreTag = (s) =>
-    s != null ? `<span class="team-score">${s}</span>` : '';
+    s != null && s !== '' ? `<span class="team-score">${s}</span>` : '';
 
-  return `<div class="match-teams">
+  const setsAttr = setData
+    ? ` data-sets="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
+    : '';
+
+  return `<div class="match-teams"${setsAttr}>
   <div class="team-row${aWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamA || '—'}</span>${scoreTag(sA)}
+    <span class="team-players">${m.teamA || '—'}</span>${scoreTag(displayA)}
   </div>
   <div class="vs-divider">vs</div>
   <div class="team-row${bWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamB || '—'}</span>${scoreTag(sB)}
+    <span class="team-players">${m.teamB || '—'}</span>${scoreTag(displayB)}
   </div>
 </div>`;
 }
@@ -283,6 +361,7 @@ async function loadData() {
     setTitle(table);
     const rounds = parseRounds(table);
     cachedRounds = rounds;
+    cachedStandings = computeStandings(rounds);
     populateTeamFilter(collectTeams(rounds));
     renderAll(rounds);
     const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -332,4 +411,94 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', () => {
   applyTheme(effectiveTheme());
   loadData().then(scheduleRefresh);
+
+  // Set detail popup — event delegation on the content area
+  document.getElementById('tournament-content').addEventListener('click', e => {
+    const card = e.target.closest('[data-sets]');
+    if (!card) return;
+    const [rawA, rawB] = card.dataset.sets.split('|');
+    const [teamAName, teamBName] = (card.dataset.teams || '|').split('|');
+    const { matchA, matchB, setsA, setsB, len } = setsToMatchScore(rawA, rawB);
+    const rows = Array.from({ length: len }, (_, i) =>
+      `<div class="set-row">
+        <span class="set-label">Set ${i + 1}</span>
+        <span class="${setsA[i] > setsB[i] ? 'winner' : ''}">${setsA[i]}</span>
+        <span class="set-dash">–</span>
+        <span class="${setsB[i] > setsA[i] ? 'winner' : ''}">${setsB[i]}</span>
+      </div>`
+    ).join('');
+
+    let statsHtml = '';
+    if (cachedStandings && teamAName && teamBName) {
+      const { stats, hasSets } = cachedStandings;
+      const sA = stats.get(teamAName) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+      const sB = stats.get(teamBName) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+      const pdA = sA.pointsScored - sA.pointsAllowed;
+      const pdB = sB.pointsScored - sB.pointsAllowed;
+      const fmt = n => n > 0 ? `+${n}` : `${n}`;
+      const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
+      // Compute this match's contribution per team
+      let mSetsWonA = 0, mSetsLostA = 0, mPSA = 0, mPAA = 0;
+      let mSetsWonB = 0, mSetsLostB = 0, mPSB = 0, mPAB = 0;
+      for (let i = 0; i < len; i++) {
+        if (setsA[i] > setsB[i]) { mSetsWonA++; mSetsLostB++; }
+        else if (setsB[i] > setsA[i]) { mSetsWonB++; mSetsLostA++; }
+        mPSA += setsA[i]; mPAA += setsB[i];
+        mPSB += setsB[i]; mPAB += setsA[i];
+      }
+      const mWinA = matchA > matchB ? 1 : 0;
+      const mWinB = matchB > matchA ? 1 : 0;
+      const mPDA = mPSA - mPAA;
+      const mPDB = mPSB - mPAB;
+
+      // statDefs: [label, totalA, totalB, isPd, matchDeltaA, matchDeltaB]
+      const statDefs = [
+        ['Wins',              sA.matchesWon,    sB.matchesWon,    false, mWinA,    mWinB],
+        ...(hasSets ? [
+          ['Sets Won',        sA.setsWon,       sB.setsWon,       false, mSetsWonA, mSetsWonB],
+          ['Sets Lost',       sA.setsLost,      sB.setsLost,      false, mSetsLostA, mSetsLostB],
+          ['Points Scored',   sA.pointsScored,  sB.pointsScored,  false, mPSA,     mPSB],
+          ['Points Allowed',  sA.pointsAllowed, sB.pointsAllowed, false, mPAA,     mPAB],
+          ['Point Differential', pdA,           pdB,              true,  mPDA,     mPDB],
+        ] : []),
+      ];
+      const teamList = (name, vals) =>
+        `<div class="stats-team-block">
+          <div class="stats-team-heading">${escapeHtml(name)}</div>
+          <ul class="stats-list">
+            ${vals.map(([label, v, , isPd, delta]) => {
+              const deltaHtml = delta != null
+                ? ` <span class="stat-delta">(${isPd ? fmt(delta) : delta})</span>`
+                : '';
+              return `<li><span class="stat-label">${label}:</span> <span class="${isPd ? pdClass(v) : ''}">${isPd ? fmt(v) : v}</span>${deltaHtml}</li>`;
+            }).join('')}
+          </ul>
+        </div>`;
+      statsHtml = `<div class="stats-section">
+        ${teamList(teamAName, statDefs)}
+        ${teamList(teamBName, statDefs.map(([l, , vB, isPd, , dB]) => [l, vB, null, isPd, dB]))}
+      </div>`;
+    }
+
+    const popup = document.getElementById('sets-popup');
+    popup.querySelector('.sets-popup-body').innerHTML = rows + statsHtml;
+    const rect = card.getBoundingClientRect();
+    popup.style.top      = `${rect.bottom + window.scrollY + 6}px`;
+    popup.style.left     = `${rect.left  + window.scrollX}px`;
+    popup.style.minWidth = `${rect.width}px`;
+    popup.classList.remove('hidden');
+  });
+
+  document.getElementById('sets-popup-close').addEventListener('click', () => {
+    document.getElementById('sets-popup').classList.add('hidden');
+  });
+
+  document.addEventListener('click', e => {
+    const popup = document.getElementById('sets-popup');
+    if (!popup.classList.contains('hidden') &&
+        !popup.contains(e.target) &&
+        !e.target.closest('[data-sets]')) {
+      popup.classList.add('hidden');
+    }
+  });
 });
