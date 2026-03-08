@@ -437,29 +437,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const pdB = sB.pointsScored - sB.pointsAllowed;
       const fmt = n => n > 0 ? `+${n}` : `${n}`;
       const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
-      const statRows = [
-        ['W',  sA.matchesWon,    sB.matchesWon],
+      const statDefs = [
+        ['Wins',              sA.matchesWon,    sB.matchesWon,    false],
         ...(hasSets ? [
-          ['SW', sA.setsWon,       sB.setsWon],
-          ['SL', sA.setsLost,      sB.setsLost],
-          ['PS', sA.pointsScored,  sB.pointsScored],
-          ['PA', sA.pointsAllowed, sB.pointsAllowed],
-          ['PD', pdA,              pdB, true],
+          ['Sets Won',        sA.setsWon,       sB.setsWon,       false],
+          ['Sets Lost',       sA.setsLost,      sB.setsLost,      false],
+          ['Points Scored',   sA.pointsScored,  sB.pointsScored,  false],
+          ['Points Allowed',  sA.pointsAllowed, sB.pointsAllowed, false],
+          ['Point Differential', pdA,           pdB,              true],
         ] : []),
-      ].map(([label, vA, vB, isPd]) =>
-        `<div class="stat-row">
-          <span class="stat-label">${label}</span>
-          <span class="${isPd ? pdClass(vA) : ''}">${isPd ? fmt(vA) : vA}</span>
-          <span class="${isPd ? pdClass(vB) : ''}">${isPd ? fmt(vB) : vB}</span>
-        </div>`
-      ).join('');
+      ];
+      const teamList = (name, vals) =>
+        `<div class="stats-team-block">
+          <div class="stats-team-heading">${escapeHtml(name)}</div>
+          <ul class="stats-list">
+            ${vals.map(([label, v, , isPd]) =>
+              `<li><span class="stat-label">${label}:</span> <span class="${isPd ? pdClass(v) : ''}">${isPd ? fmt(v) : v}</span></li>`
+            ).join('')}
+          </ul>
+        </div>`;
       statsHtml = `<div class="stats-section">
-        <div class="stats-header">
-          <span></span>
-          <span class="stats-team-name">${escapeHtml(teamAName)}</span>
-          <span class="stats-team-name">${escapeHtml(teamBName)}</span>
-        </div>
-        ${statRows}
+        ${teamList(teamAName, statDefs)}
+        ${teamList(teamBName, statDefs.map(([l, , vB, isPd]) => [l, vB, null, isPd]))}
       </div>`;
     }
 
