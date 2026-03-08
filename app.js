@@ -9,8 +9,9 @@ const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 const TAB_NAME = new URLSearchParams(window.location.search).get('tab') || null;
 const TEAM_FILTER_KEY = 'teamFilter' + (TAB_NAME ? '_' + TAB_NAME : '');
 
-let refreshTimer    = null;
-let cachedRounds    = null;
+let refreshTimer     = null;
+let cachedRounds     = null;
+let cachedStandings  = null;
 let activeTeamFilter = '';
 
 // ── Fetch via Google Visualization JSONP ──────────────────────────────────────
@@ -143,6 +144,55 @@ function collectTeams(rounds) {
   return [...teams].sort((a, b) => a.localeCompare(b));
 }
 
+// ── Tournament standings ───────────────────────────────────────────────────────
+
+function computeStandings(rounds) {
+  const stats = new Map();
+  let hasSets = false;
+
+  const ensureTeam = name => {
+    if (!stats.has(name)) {
+      stats.set(name, { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 });
+    }
+    return stats.get(name);
+  };
+
+  for (const round of rounds) {
+    for (const m of round.matchups) {
+      if (!m.teamA || !m.teamB) continue;
+      if (m.scoreA === '' || m.scoreB === '') continue;
+
+      if (String(m.scoreA).includes(',') || String(m.scoreB).includes(',')) {
+        hasSets = true;
+        const { matchA, matchB, setsA, setsB, len } = setsToMatchScore(m.scoreA, m.scoreB);
+        const tA = ensureTeam(m.teamA);
+        const tB = ensureTeam(m.teamB);
+        if (matchA > matchB) tA.matchesWon++;
+        else if (matchB > matchA) tB.matchesWon++;
+        for (let i = 0; i < len; i++) {
+          tA.setsWon      += setsA[i] > setsB[i] ? 1 : 0;
+          tA.setsLost     += setsB[i] > setsA[i] ? 1 : 0;
+          tA.pointsScored += setsA[i];
+          tA.pointsAllowed+= setsB[i];
+          tB.setsWon      += setsB[i] > setsA[i] ? 1 : 0;
+          tB.setsLost     += setsA[i] > setsB[i] ? 1 : 0;
+          tB.pointsScored += setsB[i];
+          tB.pointsAllowed+= setsA[i];
+        }
+      } else {
+        const nA = Number(m.scoreA), nB = Number(m.scoreB);
+        if (isNaN(nA) || isNaN(nB)) continue;
+        const tA = ensureTeam(m.teamA);
+        const tB = ensureTeam(m.teamB);
+        if (nA > nB) tA.matchesWon++;
+        else if (nB > nA) tB.matchesWon++;
+      }
+    }
+  }
+
+  return { stats, hasSets };
+}
+
 function populateTeamFilter(teams) {
   const sel = document.getElementById('team-filter');
   const prev = localStorage.getItem(TEAM_FILTER_KEY) || sel.value;
@@ -209,7 +259,7 @@ function renderMatchup(m) {
     s != null && s !== '' ? `<span class="team-score">${s}</span>` : '';
 
   const setsAttr = setData
-    ? ` data-sets="${m.scoreA}|${m.scoreB}" style="cursor:pointer"`
+    ? ` data-sets="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
     : '';
 
   return `<div class="match-teams"${setsAttr}>
@@ -311,6 +361,7 @@ async function loadData() {
     setTitle(table);
     const rounds = parseRounds(table);
     cachedRounds = rounds;
+    cachedStandings = computeStandings(rounds);
     populateTeamFilter(collectTeams(rounds));
     renderAll(rounds);
     const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -366,6 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = e.target.closest('[data-sets]');
     if (!card) return;
     const [rawA, rawB] = card.dataset.sets.split('|');
+    const [teamAName, teamBName] = (card.dataset.teams || '|').split('|');
     const { setsA, setsB, len } = setsToMatchScore(rawA, rawB);
     const rows = Array.from({ length: len }, (_, i) =>
       `<div class="set-row">
@@ -375,8 +427,44 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="${setsB[i] > setsA[i] ? 'winner' : ''}">${setsB[i]}</span>
       </div>`
     ).join('');
+
+    let statsHtml = '';
+    if (cachedStandings && teamAName && teamBName) {
+      const { stats, hasSets } = cachedStandings;
+      const sA = stats.get(teamAName) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+      const sB = stats.get(teamBName) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+      const pdA = sA.pointsScored - sA.pointsAllowed;
+      const pdB = sB.pointsScored - sB.pointsAllowed;
+      const fmt = n => n > 0 ? `+${n}` : `${n}`;
+      const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
+      const statRows = [
+        ['W',  sA.matchesWon,    sB.matchesWon],
+        ...(hasSets ? [
+          ['SW', sA.setsWon,       sB.setsWon],
+          ['SL', sA.setsLost,      sB.setsLost],
+          ['PS', sA.pointsScored,  sB.pointsScored],
+          ['PA', sA.pointsAllowed, sB.pointsAllowed],
+          ['PD', pdA,              pdB, true],
+        ] : []),
+      ].map(([label, vA, vB, isPd]) =>
+        `<div class="stat-row">
+          <span class="stat-label">${label}</span>
+          <span class="${isPd ? pdClass(vA) : ''}">${isPd ? fmt(vA) : vA}</span>
+          <span class="${isPd ? pdClass(vB) : ''}">${isPd ? fmt(vB) : vB}</span>
+        </div>`
+      ).join('');
+      statsHtml = `<div class="stats-section">
+        <div class="stats-header">
+          <span></span>
+          <span class="stats-team-name">${escapeHtml(teamAName)}</span>
+          <span class="stats-team-name">${escapeHtml(teamBName)}</span>
+        </div>
+        ${statRows}
+      </div>`;
+    }
+
     const popup = document.getElementById('sets-popup');
-    popup.querySelector('.sets-popup-body').innerHTML = rows;
+    popup.querySelector('.sets-popup-body').innerHTML = rows + statsHtml;
     const rect = card.getBoundingClientRect();
     popup.style.top      = `${rect.bottom + window.scrollY + 6}px`;
     popup.style.left     = `${rect.left  + window.scrollX}px`;

@@ -388,6 +388,54 @@ main {
   font-weight: 700;
 }
 
+/* ── Popup stats section ──────────────────────────────── */
+.stats-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.stats-header,
+.stat-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 1fr;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  font-size: 0.85rem;
+}
+
+.stats-header {
+  margin-bottom: 4px;
+}
+
+.stats-team-name {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70px;
+}
+
+.stat-label {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-row span:not(.stat-label) {
+  text-align: right;
+  color: var(--color-text);
+}
+
+.pd-pos { color: var(--color-live);  font-weight: 700; }
+.pd-neg { color: var(--color-error); font-weight: 700; }
+
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 600px) {
   main { padding: 16px; }
