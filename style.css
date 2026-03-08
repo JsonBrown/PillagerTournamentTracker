@@ -337,6 +337,57 @@ main {
   padding: 6px 0;
 }
 
+/* ── Set detail popup ─────────────────────────────────── */
+.sets-popup {
+  position: absolute;
+  z-index: 200;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-width: 160px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.sets-popup.hidden { display: none; }
+
+.sets-popup-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.sets-popup-close:hover { color: var(--color-text); }
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.set-label {
+  color: var(--color-text-muted);
+  min-width: 36px;
+  font-size: 0.8rem;
+}
+
+.set-dash { color: var(--color-text-muted); }
+
+.set-row .winner {
+  color: var(--color-live);
+  font-weight: 700;
+}
+
 /* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 600px) {
   main { padding: 16px; }

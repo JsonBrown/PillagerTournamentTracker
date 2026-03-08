@@ -172,25 +172,53 @@ function courtClass(idx) {
   return `court-${idx}`;
 }
 
+function setsToMatchScore(scoreA, scoreB) {
+  const setsA = String(scoreA).split(',').map(s => Number(s.trim()));
+  const setsB = String(scoreB).split(',').map(s => Number(s.trim()));
+  const len = Math.min(setsA.length, setsB.length);
+  let matchA = 0, matchB = 0;
+  for (let i = 0; i < len; i++) {
+    if (setsA[i] > setsB[i]) matchA++;
+    else if (setsB[i] > setsA[i]) matchB++;
+  }
+  return { matchA, matchB, setsA, setsB, len };
+}
+
 function renderMatchup(m) {
   if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
 
-  const sA    = m.scoreA !== '' ? Number(m.scoreA) : null;
-  const sB    = m.scoreB !== '' ? Number(m.scoreB) : null;
+  let displayA = m.scoreA, displayB = m.scoreB;
+  let sA = m.scoreA !== '' ? Number(m.scoreA) : null;
+  let sB = m.scoreB !== '' ? Number(m.scoreB) : null;
+  let setData = null;
+
+  if (String(m.scoreA).includes(',') || String(m.scoreB).includes(',')) {
+    const result = setsToMatchScore(m.scoreA, m.scoreB);
+    displayA = result.matchA;
+    displayB = result.matchB;
+    sA = result.matchA;
+    sB = result.matchB;
+    setData = result;
+  }
+
   const both  = sA != null && sB != null;
   const aWins = both && sA > sB;
   const bWins = both && sB > sA;
 
   const scoreTag = (s) =>
-    s != null ? `<span class="team-score">${s}</span>` : '';
+    s != null && s !== '' ? `<span class="team-score">${s}</span>` : '';
 
-  return `<div class="match-teams">
+  const setsAttr = setData
+    ? ` data-sets="${m.scoreA}|${m.scoreB}" style="cursor:pointer"`
+    : '';
+
+  return `<div class="match-teams"${setsAttr}>
   <div class="team-row${aWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamA || '—'}</span>${scoreTag(sA)}
+    <span class="team-players">${m.teamA || '—'}</span>${scoreTag(displayA)}
   </div>
   <div class="vs-divider">vs</div>
   <div class="team-row${bWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamB || '—'}</span>${scoreTag(sB)}
+    <span class="team-players">${m.teamB || '—'}</span>${scoreTag(displayB)}
   </div>
 </div>`;
 }
@@ -332,4 +360,39 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', () => {
   applyTheme(effectiveTheme());
   loadData().then(scheduleRefresh);
+
+  // Set detail popup — event delegation on the content area
+  document.getElementById('tournament-content').addEventListener('click', e => {
+    const card = e.target.closest('[data-sets]');
+    if (!card) return;
+    const [rawA, rawB] = card.dataset.sets.split('|');
+    const { setsA, setsB, len } = setsToMatchScore(rawA, rawB);
+    const rows = Array.from({ length: len }, (_, i) =>
+      `<div class="set-row">
+        <span class="set-label">Set ${i + 1}</span>
+        <span class="${setsA[i] > setsB[i] ? 'winner' : ''}">${setsA[i]}</span>
+        <span class="set-dash">–</span>
+        <span class="${setsB[i] > setsA[i] ? 'winner' : ''}">${setsB[i]}</span>
+      </div>`
+    ).join('');
+    const popup = document.getElementById('sets-popup');
+    popup.querySelector('.sets-popup-body').innerHTML = rows;
+    const rect = card.getBoundingClientRect();
+    popup.style.top  = `${rect.bottom + window.scrollY + 6}px`;
+    popup.style.left = `${rect.left  + window.scrollX}px`;
+    popup.classList.remove('hidden');
+  });
+
+  document.getElementById('sets-popup-close').addEventListener('click', () => {
+    document.getElementById('sets-popup').classList.add('hidden');
+  });
+
+  document.addEventListener('click', e => {
+    const popup = document.getElementById('sets-popup');
+    if (!popup.classList.contains('hidden') &&
+        !popup.contains(e.target) &&
+        !e.target.closest('[data-sets]')) {
+      popup.classList.add('hidden');
+    }
+  });
 });
