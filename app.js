@@ -378,8 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('sets-popup');
     popup.querySelector('.sets-popup-body').innerHTML = rows;
     const rect = card.getBoundingClientRect();
-    popup.style.top  = `${rect.bottom + window.scrollY + 6}px`;
-    popup.style.left = `${rect.left  + window.scrollX}px`;
+    popup.style.top      = `${rect.bottom + window.scrollY + 6}px`;
+    popup.style.left     = `${rect.left  + window.scrollX}px`;
+    popup.style.minWidth = `${rect.width}px`;
     popup.classList.remove('hidden');
   });
 
