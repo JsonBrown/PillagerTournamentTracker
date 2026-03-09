@@ -228,6 +228,7 @@ main {
   color: var(--color-text-bright);
   padding: 10px 14px;
   border-bottom: 2px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
   text-align: left;
   white-space: nowrap;
 }
@@ -240,7 +241,7 @@ main {
   color: var(--color-text-muted);
   padding: 14px 16px;
   border-left: 3px solid var(--color-border); /* overridden per court */
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-bottom: 2px solid var(--color-border);
   text-align: left;
   vertical-align: top;
   white-space: nowrap;
@@ -262,8 +263,8 @@ main {
 
 .matchup-cell {
   padding: 10px 14px;
-  border-left: 1px solid var(--color-surface-raised);
-  border-bottom: 1px solid var(--color-surface-raised);
+  border-left: 1px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
   vertical-align: top;
   min-width: 180px;
 }
