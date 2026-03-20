@@ -29,8 +29,16 @@
     </div>
   </header>
 
-  <main id="tournament-content">
-    <p class="loading">Loading tournament data…</p>
+  <nav class="tab-nav">
+    <button class="tab-btn tab-active" data-tab="schedule" onclick="showTab('schedule')">Schedule</button>
+    <button class="tab-btn" data-tab="standings" onclick="showTab('standings')">Team Stats</button>
+  </nav>
+
+  <main>
+    <div id="tournament-content">
+      <p class="loading">Loading tournament data…</p>
+    </div>
+    <div id="standings-content" hidden></div>
   </main>
 
   <div id="sets-popup" class="sets-popup hidden" role="tooltip">
