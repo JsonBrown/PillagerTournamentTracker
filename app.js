@@ -186,6 +186,8 @@ function computeStandings(rounds) {
         const tB = ensureTeam(m.teamB);
         if (nA > nB) tA.matchesWon++;
         else if (nB > nA) tB.matchesWon++;
+        tA.pointsScored  += nA; tA.pointsAllowed += nB;
+        tB.pointsScored  += nB; tB.pointsAllowed += nA;
       }
     }
   }
@@ -326,6 +328,83 @@ function renderAll(rounds) {
   if (newWrapper) { newWrapper.scrollLeft = sx; newWrapper.scrollTop = sy; }
 }
 
+// ── Team Stats tab ────────────────────────────────────────────────────────────
+
+let activeTab = 'schedule';
+
+function showTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('tab-active', btn.dataset.tab === tab);
+  });
+  document.getElementById('tournament-content').hidden = tab !== 'schedule';
+  document.getElementById('standings-content').hidden  = tab !== 'standings';
+}
+
+function renderStandings(rounds, { stats, hasSets }) {
+  const el = document.getElementById('standings-content');
+  const allTeams = collectTeams(rounds);
+
+  if (allTeams.length === 0) {
+    el.innerHTML = '<p class="loading">No teams found.</p>';
+    return;
+  }
+
+  const hasPoints = [...stats.values()].some(s => s.pointsScored > 0);
+
+  const rows = allTeams.map(name => {
+    const s = stats.get(name) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+    return { name, wins: s.matchesWon, setsWon: s.setsWon, setsLost: s.setsLost,
+             pointsScored: s.pointsScored, pointsAllowed: s.pointsAllowed,
+             pointDiff: s.pointsScored - s.pointsAllowed };
+  });
+
+  // Rank: wins desc → points scored desc → point differential desc → name asc
+  rows.sort((a, b) =>
+    b.wins - a.wins ||
+    b.pointsScored - a.pointsScored ||
+    b.pointDiff - a.pointDiff ||
+    a.name.localeCompare(b.name)
+  );
+
+  // Standard competition ranking (1,1,3…)
+  let rankCounter = 1;
+  rows.forEach((r, i) => {
+    r.rank = i > 0 && r.wins === rows[i - 1].wins &&
+             r.pointsScored === rows[i - 1].pointsScored &&
+             r.pointDiff === rows[i - 1].pointDiff
+      ? rows[i - 1].rank
+      : rankCounter;
+    rankCounter++;
+  });
+
+  const fmt = n => n > 0 ? `+${n}` : `${n}`;
+  const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
+
+  const extraHead = hasSets
+    ? '<th title="Sets Won">SW</th><th title="Sets Lost">SL</th><th title="Points Scored">PS</th><th title="Points Allowed">PA</th><th title="Point Differential">PD</th>'
+    : hasPoints
+      ? '<th title="Points Scored">PS</th><th title="Points Allowed">PA</th><th title="Point Differential">PD</th>'
+      : '';
+
+  const tableRows = rows.map(r => {
+    const extraData = hasSets
+      ? `<td>${r.setsWon}</td><td>${r.setsLost}</td><td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
+      : hasPoints
+        ? `<td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
+        : '';
+    const rankMedal = r.rank === 1 ? ' rank-gold' : r.rank === 2 ? ' rank-silver' : r.rank === 3 ? ' rank-bronze' : '';
+    return `<tr class="${rankMedal}"><td class="rank-cell">${r.rank}</td><td class="team-name-cell">${escapeHtml(r.name)}</td><td class="wins-cell">${r.wins}</td>${extraData}</tr>`;
+  }).join('');
+
+  el.innerHTML = `<div class="standings-wrapper">
+    <table class="standings-table">
+      <thead><tr><th>#</th><th>Team</th><th title="Wins">W</th>${extraHead}</tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  </div>`;
+}
+
 // ── Title ─────────────────────────────────────────────────────────────────────
 
 function setTitle(table) {
@@ -364,6 +443,7 @@ async function loadData() {
     cachedStandings = computeStandings(rounds);
     populateTeamFilter(collectTeams(rounds));
     renderAll(rounds);
+    renderStandings(rounds, cachedStandings);
     const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setStatus(`Updated ${t} · refreshes every 30 s`, 'live');
   } catch (err) {
