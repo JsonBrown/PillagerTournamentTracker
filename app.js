@@ -397,11 +397,19 @@ function renderStandings(rounds, { stats, hasSets }) {
     return `<tr class="${rankMedal}"><td class="rank-cell">${r.rank}</td><td class="team-name-cell">${escapeHtml(r.name)}</td><td class="wins-cell">${r.wins}</td>${extraData}</tr>`;
   }).join('');
 
+  const legendItems = [
+    '<span><strong>#</strong> Rank</span>',
+    '<span><strong>W</strong> Wins</span>',
+    ...(hasSets ? ['<span><strong>SW</strong> Sets Won</span>', '<span><strong>SL</strong> Sets Lost</span>'] : []),
+    ...((hasSets || hasPoints) ? ['<span><strong>PS</strong> Points Scored</span>', '<span><strong>PA</strong> Points Allowed</span>', '<span><strong>PD</strong> Point Differential</span>'] : []),
+  ].join('');
+
   el.innerHTML = `<div class="standings-wrapper">
     <table class="standings-table">
       <thead><tr><th>#</th><th>Team</th><th title="Wins">W</th>${extraHead}</tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
+    <div class="standings-legend">${legendItems}</div>
   </div>`;
 }
 
@@ -561,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const popup = document.getElementById('sets-popup');
-    popup.querySelector('.sets-popup-body').innerHTML = rows + statsHtml;
+    popup.querySelector('.sets-popup-body').innerHTML = rows; // + statsHtml;
     const cell = card.closest('td') || card;
     const rect = cell.getBoundingClientRect();
     popup.style.top      = `${rect.bottom + window.scrollY + 6}px`;
