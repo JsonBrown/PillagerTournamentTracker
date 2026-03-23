@@ -195,6 +195,31 @@ function computeStandings(rounds) {
   return { stats, hasSets };
 }
 
+function buildRankMap(rounds, { stats }) {
+  const allTeams = collectTeams(rounds);
+  const rows = allTeams.map(name => {
+    const s = stats.get(name) ?? { matchesWon: 0, pointsScored: 0, pointsAllowed: 0 };
+    return { name, wins: s.matchesWon, pointsScored: s.pointsScored,
+             pointDiff: s.pointsScored - s.pointsAllowed };
+  });
+  rows.sort((a, b) =>
+    b.wins - a.wins || b.pointsScored - a.pointsScored ||
+    b.pointDiff - a.pointDiff || a.name.localeCompare(b.name)
+  );
+  let rankCounter = 1;
+  rows.forEach((r, i) => {
+    r.rank = i > 0 && r.wins === rows[i-1].wins &&
+             r.pointsScored === rows[i-1].pointsScored &&
+             r.pointDiff === rows[i-1].pointDiff
+      ? rows[i-1].rank : rankCounter;
+    rankCounter++;
+  });
+  // Only assign rank to teams that have played at least one scored match
+  return new Map(rows
+    .filter(r => r.wins > 0 || r.pointsScored > 0)
+    .map(r => [r.name, r.rank]));
+}
+
 function populateTeamFilter(teams) {
   const sel = document.getElementById('team-filter');
   const prev = localStorage.getItem(TEAM_FILTER_KEY) || sel.value;
@@ -236,7 +261,7 @@ function setsToMatchScore(scoreA, scoreB) {
   return { matchA, matchB, setsA, setsB, len };
 }
 
-function renderMatchup(m) {
+function renderMatchup(m, rankMap = new Map()) {
   if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
 
   let displayA = m.scoreA, displayB = m.scoreB;
@@ -264,13 +289,18 @@ function renderMatchup(m) {
     ? ` data-sets="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
     : '';
 
+  const rankBadge = (name) => {
+    const r = rankMap.get(name);
+    return r != null ? `<span class="team-rank" data-rank="${r}">#${r}</span>` : '';
+  };
+
   return `<div class="match-teams"${setsAttr}>
   <div class="team-row${aWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamA || '—'}</span>${scoreTag(displayA)}
+    ${rankBadge(m.teamA)}<span class="team-players">${m.teamA || '—'}</span>${scoreTag(displayA)}
   </div>
   <div class="vs-divider">vs</div>
   <div class="team-row${bWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamB || '—'}</span>${scoreTag(displayB)}
+    ${rankBadge(m.teamB)}<span class="team-players">${m.teamB || '—'}</span>${scoreTag(displayB)}
   </div>
 </div>`;
 }
@@ -279,6 +309,10 @@ function renderAll(rounds) {
   const prevWrapper = document.querySelector('.schedule-wrapper');
   const sx = prevWrapper ? prevWrapper.scrollLeft : 0;
   const sy = prevWrapper ? prevWrapper.scrollTop : 0;
+
+  const rankMap = (cachedStandings && cachedRounds)
+    ? buildRankMap(cachedRounds, cachedStandings)
+    : new Map();
 
   const validRounds = rounds.filter(r => r.time);
   if (validRounds.length === 0) {
@@ -317,7 +351,7 @@ function renderAll(rounds) {
       const show = !activeTeamFilter
         || m.teamA === activeTeamFilter
         || m.teamB === activeTeamFilter;
-      return `<td class="matchup-cell">${show ? renderMatchup(m) : '<span class="no-matches">—</span>'}</td>`;
+      return `<td class="matchup-cell">${show ? renderMatchup(m, rankMap) : '<span class="no-matches">—</span>'}</td>`;
     }).join('');
     return `<tr><th class="court-header ${courtClass(allCourts[courtIdx].idx)}">${courtName}</th>${cells}</tr>`;
   }).join('');
