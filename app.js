@@ -149,6 +149,7 @@ function collectTeams(rounds) {
 function computeStandings(rounds) {
   const stats = new Map();
   let hasSets = false;
+  const simpleMatches = [];   // deferred until hasSets is known
 
   const ensureTeam = name => {
     if (!stats.has(name)) {
@@ -182,11 +183,23 @@ function computeStandings(rounds) {
       } else {
         const nA = Number(m.scoreA), nB = Number(m.scoreB);
         if (isNaN(nA) || isNaN(nB)) continue;
-        const tA = ensureTeam(m.teamA);
-        const tB = ensureTeam(m.teamB);
-        if (nA > nB) tA.matchesWon++;
-        else if (nB > nA) tB.matchesWon++;
+        simpleMatches.push({ teamA: m.teamA, teamB: m.teamB, nA, nB });
       }
+    }
+  }
+
+  // Apply simple-score matches: W always; SW/SL (score = sets won) when mixed with
+  // set-based scoring. Never touch PS/PA — simple scores represent set counts, not points.
+  for (const { teamA, teamB, nA, nB } of simpleMatches) {
+    const tA = ensureTeam(teamA);
+    const tB = ensureTeam(teamB);
+    if (nA > nB) tA.matchesWon++;
+    else if (nB > nA) tB.matchesWon++;
+    if (hasSets) {
+      tA.setsWon  += nA;
+      tA.setsLost += nB;
+      tB.setsWon  += nB;
+      tB.setsLost += nA;
     }
   }
 
