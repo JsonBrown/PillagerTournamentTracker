@@ -443,8 +443,8 @@ function renderStandings(rounds, { stats, hasSets }) {
       <thead><tr><th>#</th><th>Team</th><th title="Wins">W</th>${extraHead}</tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
-    <div class="standings-legend">${legendItems}</div>
-  </div>`;
+  </div>
+  <div class="standings-legend">${legendItems}</div>`;
 }
 
 // ── Title ─────────────────────────────────────────────────────────────────────
