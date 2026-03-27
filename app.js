@@ -186,8 +186,6 @@ function computeStandings(rounds) {
         const tB = ensureTeam(m.teamB);
         if (nA > nB) tA.matchesWon++;
         else if (nB > nA) tB.matchesWon++;
-        tA.pointsScored  += nA; tA.pointsAllowed += nB;
-        tB.pointsScored  += nB; tB.pointsAllowed += nA;
       }
     }
   }
