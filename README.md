@@ -62,7 +62,7 @@ Columns C onward define courts using this header pattern:
 
 Rows without a time value in column B are skipped.
 
-**Scores** can be a plain number (`21`) or a comma-separated list of set scores (`25,25,15`) for multi-set matches.
+**Scores** can be a plain number representing sets won (e.g. `2`) or a comma-separated list of individual set scores (e.g. `25,25,15`) for full per-set tracking. A plain number is never treated as points — it is always a set count.
 
 ## Adding a New Court
 
