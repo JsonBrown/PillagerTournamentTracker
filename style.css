@@ -310,6 +310,16 @@ main {
 .rank-silver { background: color-mix(in srgb, var(--color-bg) 93%, #a0aab4 7%);  }
 .rank-bronze { background: color-mix(in srgb, var(--color-bg) 93%, #cd7f32 7%);  }
 
+/* Highlighted row when team filter is active */
+.standings-table tbody tr.team-filter-highlight {
+  background: color-mix(in srgb, var(--color-bg) 75%, var(--color-loading) 25%);
+  outline: 1px solid color-mix(in srgb, var(--color-loading) 50%, transparent 50%);
+}
+
+.standings-table tbody tr.team-filter-highlight .team-name-cell {
+  color: var(--color-loading);
+}
+
 .standings-legend {
   display: flex;
   flex-wrap: wrap;
