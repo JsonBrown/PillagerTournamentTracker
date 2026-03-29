@@ -247,7 +247,10 @@ function filterByTeam(team) {
   } else {
     localStorage.removeItem(TEAM_FILTER_KEY);
   }
-  if (cachedRounds) renderAll(cachedRounds);
+  if (cachedRounds) {
+    renderAll(cachedRounds);
+    if (cachedStandings) renderStandings(cachedRounds, cachedStandings);
+  }
 }
 
 function escapeHtml(str) {
@@ -439,7 +442,8 @@ function renderStandings(rounds, { stats, hasSets }) {
         ? `<td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
         : '';
     const rankMedal = r.rank === 1 ? ' rank-gold' : r.rank === 2 ? ' rank-silver' : r.rank === 3 ? ' rank-bronze' : '';
-    return `<tr class="${rankMedal}"><td class="rank-cell">${r.rank}</td><td class="team-name-cell">${escapeHtml(r.name)}</td><td class="wins-cell">${r.wins}</td>${extraData}</tr>`;
+    const filterHighlight = activeTeamFilter && r.name === activeTeamFilter ? ' team-filter-highlight' : '';
+    return `<tr class="${rankMedal}${filterHighlight}"><td class="rank-cell">${r.rank}</td><td class="team-name-cell">${escapeHtml(r.name)}</td><td class="wins-cell">${r.wins}</td>${extraData}</tr>`;
   }).join('');
 
   const legendItems = [
