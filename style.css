@@ -312,12 +312,12 @@ main {
 
 /* Highlighted row when team filter is active */
 .standings-table tbody tr.team-filter-highlight {
-  background: color-mix(in srgb, var(--color-bg) 75%, var(--color-loading) 25%);
-  outline: 1px solid color-mix(in srgb, var(--color-loading) 50%, transparent 50%);
+  background: color-mix(in srgb, var(--color-bg) 75%, #db2777 25%);
+  outline: 1px solid color-mix(in srgb, #db2777 50%, transparent 50%);
 }
 
 .standings-table tbody tr.team-filter-highlight .team-name-cell {
-  color: var(--color-loading);
+  color: #db2777;
 }
 
 .standings-legend {
