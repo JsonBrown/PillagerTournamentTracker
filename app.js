@@ -486,7 +486,7 @@ function applySheetOptions(table) {
 
 function parseNamedMatches(table) {
   const named = new Map();
-  for (let r = 9; r <= 19; r++) {      // A10 (index 9) … A20 (index 19)
+  for (let r = 8; r <= 18; r++) {      // A10 (index 9) … A20 (index 19)
     const val = table.rows?.[r]?.c?.[0]?.v;
     if (!val) continue;
     const m = String(val).trim().match(/^(.+)\s+\(([A-Z]+)(\d+)\)\s*$/i);
@@ -500,7 +500,7 @@ function parseNamedMatches(table) {
     for (const ch of colStr) colIdx = colIdx * 26 + (ch.charCodeAt(0) - 64);
     colIdx -= 1;
 
-    named.set(`${rowNum - 1}-${colIdx}`, matchName);
+    named.set(`${rowNum - 2}-${colIdx}`, matchName);
   }
   return named;
 }
