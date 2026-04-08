@@ -52,7 +52,20 @@ Append `?tab=<sheet name>` to the URL to display a specific sheet tab (case-sens
 
 ## Google Sheet Format
 
-Column A is reserved for options (title on row 1, logo URL on row 2).
+### Column A — Sheet Options
+
+Column A is reserved for sheet-level configuration. The tracker reads the first three rows of Column A on every load:
+
+| Cell | Expected value | Effect |
+|------|----------------|--------|
+| A1 | Tournament name (text) | Sets the page heading and browser tab title |
+| A2 | Logo image URL (text) | Displays a logo in the header; leave blank to show no logo |
+| A3 | `TRUE` | Hides the Rankings/Standings tab (any other value or blank = show tab) |
+
+Cells A4 and below in Column A are ignored.
+
+### Column B — Round Time
+
 Column B holds the time-of-day for each round (e.g. `9AM`, `9:30AM`).
 Columns C onward define courts using this header pattern:
 
