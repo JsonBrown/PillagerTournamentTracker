@@ -206,36 +206,12 @@ function computeStandings(rounds) {
   return { stats, hasSets };
 }
 
-function buildRankMap(rounds, { stats }) {
-  const allTeams = collectTeams(rounds);
-  const rows = allTeams.map(name => {
-    const s = stats.get(name) ?? { matchesWon: 0, pointsScored: 0, pointsAllowed: 0 };
-    return { name, wins: s.matchesWon, pointsScored: s.pointsScored,
-             pointDiff: s.pointsScored - s.pointsAllowed };
-  });
-  rows.sort((a, b) =>
-    b.wins - a.wins || b.pointsScored - a.pointsScored ||
-    b.pointDiff - a.pointDiff || a.name.localeCompare(b.name)
-  );
-  let rankCounter = 1;
-  rows.forEach((r, i) => {
-    r.rank = i > 0 && r.wins === rows[i-1].wins &&
-             r.pointsScored === rows[i-1].pointsScored &&
-             r.pointDiff === rows[i-1].pointDiff
-      ? rows[i-1].rank : rankCounter;
-    rankCounter++;
-  });
-  // Only assign rank to teams that have played at least one scored match
-  return new Map(rows
-    .filter(r => r.wins > 0 || r.pointsScored > 0)
-    .map(r => [r.name, r.rank]));
-}
 
 function populateTeamFilter(teams) {
   const sel = document.getElementById('team-filter');
   const prev = localStorage.getItem(TEAM_FILTER_KEY) || sel.value;
   sel.innerHTML = '<option value="">All Teams</option>'
-    + teams.map(t => `<option value="${t}"${t === prev ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('');
+    + teams.map(t => `<option value="${t}"${t === prev ? ' selected' : ''}>${escapeHtml(stripPoolSuffix(t))}</option>`).join('');
   activeTeamFilter = sel.value;
   sel.disabled = teams.length === 0;
 }
@@ -257,6 +233,15 @@ function escapeHtml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function extractPool(teamName) {
+  const m = teamName.match(/\(P(\d+)\)\s*$/i);
+  return m ? `P${m[1]}` : null;
+}
+
+function stripPoolSuffix(teamName) {
+  return teamName.replace(/\s*\(P\d+\)\s*$/i, '').trim();
+}
+
 // ── HTML rendering ────────────────────────────────────────────────────────────
 
 function courtClass(idx) {
@@ -275,7 +260,7 @@ function setsToMatchScore(scoreA, scoreB) {
   return { matchA, matchB, setsA, setsB, len };
 }
 
-function renderMatchup(m, rankMap = new Map()) {
+function renderMatchup(m) {
   if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
 
   let displayA = m.scoreA, displayB = m.scoreB;
@@ -303,18 +288,13 @@ function renderMatchup(m, rankMap = new Map()) {
     ? ` data-sets="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
     : '';
 
-  const rankBadge = (name) => {
-    const r = rankMap.get(name);
-    return r != null ? `<span class="team-rank" data-rank="${r}">#${r}</span>` : '';
-  };
-
   return `<div class="match-teams"${setsAttr}>
   <div class="team-row${aWins ? ' winner' : ''}">
-    ${rankBadge(m.teamA)}<span class="team-players">${m.teamA || '—'}</span>${scoreTag(displayA)}
+    <span class="team-players">${m.teamA ? stripPoolSuffix(m.teamA) : '—'}</span>${scoreTag(displayA)}
   </div>
   <div class="vs-divider">vs</div>
   <div class="team-row${bWins ? ' winner' : ''}">
-    ${rankBadge(m.teamB)}<span class="team-players">${m.teamB || '—'}</span>${scoreTag(displayB)}
+    <span class="team-players">${m.teamB ? stripPoolSuffix(m.teamB) : '—'}</span>${scoreTag(displayB)}
   </div>
 </div>`;
 }
@@ -323,10 +303,6 @@ function renderAll(rounds) {
   const prevWrapper = document.querySelector('.schedule-wrapper');
   const sx = prevWrapper ? prevWrapper.scrollLeft : 0;
   const sy = prevWrapper ? prevWrapper.scrollTop : 0;
-
-  const rankMap = (cachedStandings && cachedRounds)
-    ? buildRankMap(cachedRounds, cachedStandings)
-    : new Map();
 
   const validRounds = rounds.filter(r => r.time);
   if (validRounds.length === 0) {
@@ -365,7 +341,7 @@ function renderAll(rounds) {
       const show = !activeTeamFilter
         || m.teamA === activeTeamFilter
         || m.teamB === activeTeamFilter;
-      return `<td class="matchup-cell">${show ? renderMatchup(m, rankMap) : '<span class="no-matches">—</span>'}</td>`;
+      return `<td class="matchup-cell">${show ? renderMatchup(m) : '<span class="no-matches">—</span>'}</td>`;
     }).join('');
     return `<tr><th class="court-header ${courtClass(allCourts[courtIdx].idx)}">${courtName}</th>${cells}</tr>`;
   }).join('');
@@ -402,29 +378,27 @@ function renderStandings(rounds, { stats, hasSets }) {
 
   const rows = allTeams.map(name => {
     const s = stats.get(name) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
-    return { name, wins: s.matchesWon, setsWon: s.setsWon, setsLost: s.setsLost,
+    return { name, pool: extractPool(name), wins: s.matchesWon, setsWon: s.setsWon, setsLost: s.setsLost,
              pointsScored: s.pointsScored, pointsAllowed: s.pointsAllowed,
              pointDiff: s.pointsScored - s.pointsAllowed };
   });
 
-  // Rank: wins desc → points scored desc → point differential desc → name asc
-  rows.sort((a, b) =>
-    b.wins - a.wins ||
-    b.pointsScored - a.pointsScored ||
-    b.pointDiff - a.pointDiff ||
-    a.name.localeCompare(b.name)
-  );
+  // Group by pool; null key = default pool
+  const poolMap = new Map();
+  for (const r of rows) {
+    const key = r.pool ?? null;
+    if (!poolMap.has(key)) poolMap.set(key, []);
+    poolMap.get(key).push(r);
+  }
 
-  // Standard competition ranking (1,1,3…)
-  let rankCounter = 1;
-  rows.forEach((r, i) => {
-    r.rank = i > 0 && r.wins === rows[i - 1].wins &&
-             r.pointsScored === rows[i - 1].pointsScored &&
-             r.pointDiff === rows[i - 1].pointDiff
-      ? rows[i - 1].rank
-      : rankCounter;
-    rankCounter++;
+  // Named pools sorted numerically, default pool last
+  const poolKeys = [...poolMap.keys()].sort((a, b) => {
+    if (a === null) return 1;
+    if (b === null) return -1;
+    return parseInt(a.slice(1)) - parseInt(b.slice(1));
   });
+
+  const multiPool = poolKeys.length > 1;
 
   const fmt = n => n > 0 ? `+${n}` : `${n}`;
   const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
@@ -435,15 +409,47 @@ function renderStandings(rounds, { stats, hasSets }) {
       ? '<th title="Points Scored">PS</th><th title="Points Allowed">PA</th><th title="Point Differential">PD</th>'
       : '';
 
-  const tableRows = rows.map(r => {
-    const extraData = hasSets
-      ? `<td>${r.setsWon}</td><td>${r.setsLost}</td><td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
-      : hasPoints
-        ? `<td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
-        : '';
-    const rankMedal = r.rank === 1 ? ' rank-gold' : r.rank === 2 ? ' rank-silver' : r.rank === 3 ? ' rank-bronze' : '';
-    const filterHighlight = activeTeamFilter && r.name === activeTeamFilter ? ' team-filter-highlight' : '';
-    return `<tr class="${rankMedal}${filterHighlight}"><td class="rank-cell">${r.rank}</td><td class="team-name-cell">${escapeHtml(r.name)}</td><td class="wins-cell">${r.wins}</td>${extraData}</tr>`;
+  const renderPoolTable = (poolRows) => {
+    // Rank: wins desc → points scored desc → point differential desc → name asc
+    poolRows.sort((a, b) =>
+      b.wins - a.wins ||
+      b.pointsScored - a.pointsScored ||
+      b.pointDiff - a.pointDiff ||
+      a.name.localeCompare(b.name)
+    );
+    // Standard competition ranking (1,1,3…)
+    let rankCounter = 1;
+    poolRows.forEach((r, i) => {
+      r.rank = i > 0 && r.wins === poolRows[i - 1].wins &&
+               r.pointsScored === poolRows[i - 1].pointsScored &&
+               r.pointDiff === poolRows[i - 1].pointDiff
+        ? poolRows[i - 1].rank
+        : rankCounter;
+      rankCounter++;
+    });
+    const tableRows = poolRows.map(r => {
+      const extraData = hasSets
+        ? `<td>${r.setsWon}</td><td>${r.setsLost}</td><td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
+        : hasPoints
+          ? `<td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
+          : '';
+      const rankMedal = r.rank === 1 ? ' rank-gold' : r.rank === 2 ? ' rank-silver' : r.rank === 3 ? ' rank-bronze' : '';
+      const filterHighlight = activeTeamFilter && r.name === activeTeamFilter ? ' team-filter-highlight' : '';
+      return `<tr class="${rankMedal}${filterHighlight}"><td class="rank-cell">${r.rank}</td><td class="team-name-cell">${escapeHtml(stripPoolSuffix(r.name))}</td><td class="wins-cell">${r.wins}</td>${extraData}</tr>`;
+    }).join('');
+    return `<div class="standings-wrapper">
+      <table class="standings-table">
+        <thead><tr><th>#</th><th>Team</th><th title="Wins">W</th>${extraHead}</tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+  };
+
+  const sections = poolKeys.map(key => {
+    const header = multiPool
+      ? `<h3 class="pool-section-header">${key ? `Pool ${key.slice(1)}` : 'Open Pool'}</h3>`
+      : '';
+    return header + renderPoolTable(poolMap.get(key));
   }).join('');
 
   const legendItems = [
@@ -453,13 +459,7 @@ function renderStandings(rounds, { stats, hasSets }) {
     ...((hasSets || hasPoints) ? ['<span><strong>PS</strong> Points Scored</span>', '<span><strong>PA</strong> Points Allowed</span>', '<span><strong>PD</strong> Point Differential</span>'] : []),
   ].join('');
 
-  el.innerHTML = `<div class="standings-wrapper">
-    <table class="standings-table">
-      <thead><tr><th>#</th><th>Team</th><th title="Wins">W</th>${extraHead}</tr></thead>
-      <tbody>${tableRows}</tbody>
-    </table>
-  </div>
-  <div class="standings-legend">${legendItems}</div>`;
+  el.innerHTML = `${sections}<div class="standings-legend">${legendItems}</div>`;
 }
 
 // ── Sheet options (Column A) ──────────────────────────────────────────────────
@@ -611,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ];
       const teamList = (name, vals) =>
         `<div class="stats-team-block">
-          <div class="stats-team-heading">${escapeHtml(name)}</div>
+          <div class="stats-team-heading">${escapeHtml(stripPoolSuffix(name))}</div>
           <ul class="stats-list">
             ${vals.map(([label, v, , isPd, delta]) => {
               const deltaHtml = delta != null

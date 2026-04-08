@@ -7,7 +7,7 @@ A lightweight, zero-dependency, client-side web app that displays live tournamen
 ## Features
 
 - Live schedule table showing matchups by court and time slot
-- Rankings/standings tab with wins, sets, points, and point differential
+- Rankings/standings tab with wins, sets, points, and point differential — split by pool when pools are defined
 - Team filter to focus on a single team's matches
 - Set-by-set score detail popup for multi-set matches
 - Dark/light theme toggle with system preference detection
@@ -76,6 +76,14 @@ Columns C onward define courts using this header pattern:
 Rows without a time value in column B are skipped.
 
 **Scores** can be a plain number representing sets won (e.g. `2`) or a comma-separated list of individual set scores (e.g. `25,25,15`) for full per-set tracking. A plain number is never treated as points — it is always a set count.
+
+### Pool Assignments
+
+To assign a team to a pool, append `(P#)` to the team name in the sheet — for example `Sharks (P1)` or `Tigers (P2)`. Teams without a pool suffix are treated as belonging to an open/default pool.
+
+When any teams have pool designations, the Rankings tab splits into separate sections — one per pool — each with its own rankings. Teams without a designation are grouped together in an "Open Pool" section at the bottom. If all teams are in the same pool (or none have a designation), no section headers are shown and rankings appear as a single table.
+
+The `(P#)` suffix is stripped from team names everywhere they are displayed; it is used only for grouping.
 
 ## Adding a New Court
 

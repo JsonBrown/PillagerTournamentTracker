@@ -237,6 +237,19 @@ main {
   padding: 28px 24px;
 }
 
+/* ── Pool section headers ─────────────────────────────── */
+.pool-section-header {
+  color: var(--color-text-bright);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 1rem 1rem 0.4rem;
+  margin: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.pool-section-header:not(:first-child) {
+  margin-top: 1.5rem;
+}
+
 /* ── Standings table ──────────────────────────────────── */
 .standings-wrapper {
   overflow-x: auto;
@@ -421,18 +434,6 @@ main {
   outline: 1px solid var(--color-winner-border);
 }
 
-.team-rank {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  margin-right: 0.25rem;
-  opacity: 0.7;
-  white-space: nowrap;
-}
-
-.team-rank[data-rank="1"] { color: #d4af37; opacity: 1; }
-.team-rank[data-rank="2"] { color: #9ba4b0; opacity: 1; }
-.team-rank[data-rank="3"] { color: #cd7f32; opacity: 1; }
 
 .team-players {
   font-size: 0.92rem;
