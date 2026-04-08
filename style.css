@@ -482,8 +482,8 @@ main {
   padding: 6px 0;
 }
 
-/* ── Set detail popup ─────────────────────────────────── */
-.sets-popup {
+/* ── Pool match detail popup ──────────────────────────── */
+.pool-popup {
   position: absolute;
   z-index: 200;
   background: var(--color-surface);
@@ -494,9 +494,9 @@ main {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
-.sets-popup.hidden { display: none; }
+.pool-popup.hidden { display: none; }
 
-.sets-popup-close {
+.pool-popup-close {
   position: absolute;
   top: 6px;
   right: 8px;
@@ -509,9 +509,9 @@ main {
   padding: 2px 4px;
 }
 
-.sets-popup-close:hover { color: var(--color-text); }
+.pool-popup-close:hover { color: var(--color-text); }
 
-.set-row {
+.game-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -520,15 +520,15 @@ main {
   color: var(--color-text);
 }
 
-.set-label {
+.game-label {
   color: var(--color-text-muted);
   min-width: 36px;
   font-size: 0.8rem;
 }
 
-.set-dash { color: var(--color-text-muted); }
+.game-dash { color: var(--color-text-muted); }
 
-.set-row .winner {
+.game-row .winner {
   color: var(--color-live);
   font-weight: 700;
 }
