@@ -90,8 +90,9 @@ function parseCourts(headers) {
 // ── Turn a gviz table into plain round objects ────────────────────────────────
 
 function parseRounds(table) {
-  const headers = table.cols.map(c => c.label ?? '');
-  const courts  = parseCourts(headers);
+  const headers      = table.cols.map(c => c.label ?? '');
+  const courts       = parseCourts(headers);
+  const namedMatches = parseNamedMatches(table);
 
   const cell = (row, idx) => {
     if (idx == null) return '';
@@ -117,7 +118,7 @@ function parseRounds(table) {
     return String(v).trim();
   };
 
-  return table.rows.map(row => ({
+  return table.rows.map((row, rowIdx) => ({
     time:     timeCell(row, 2),
     matchups: courts.map(ct => ({
       court:     ct.name,
@@ -127,6 +128,7 @@ function parseRounds(table) {
       teamB:     cell(row, ct.teamBCol),
       scoreA:    ct.scoreACol != null ? cell(row, ct.scoreACol) : '',
       scoreB:    ct.scoreBCol != null ? cell(row, ct.scoreBCol) : '',
+      matchName: namedMatches.get(`${rowIdx}-${ct.teamACol}`) ?? null,
     })),
   }));
 }
@@ -270,8 +272,12 @@ function renderMatchup(m) {
     ? ` data-games="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
     : '';
 
+  const nameBadge = m.matchName
+    ? `<div class="match-name">${escapeHtml(m.matchName)}</div>`
+    : '';
+
   return `<div class="match-teams"${poolMatchAttr}>
-  <div class="team-row${aWins ? ' winner' : ''}">
+  ${nameBadge}<div class="team-row${aWins ? ' winner' : ''}">
     <span class="team-players">${m.teamA ? stripPoolSuffix(m.teamA) : '—'}</span>${scoreTag(displayA)}
   </div>
   <div class="vs-divider">vs</div>
@@ -470,6 +476,33 @@ function applySheetOptions(table) {
     btn.hidden = hideRankings;
     if (hideRankings && activeTab === 'standings') showTab('schedule');
   }
+}
+
+// ── Named matches (Column A, rows 10–20) ─────────────────────────────────────
+//
+// Each cell may contain "{match name} ({cell ref})" e.g. "Silver Semifinal (D5)".
+// The cell ref points to the "Team A" cell of the target matchup (1-based, A1 notation).
+// Returns a Map keyed by "rowIdx-colIdx" (both 0-based) → label string.
+
+function parseNamedMatches(table) {
+  const named = new Map();
+  for (let r = 9; r <= 19; r++) {      // A10 (index 9) … A20 (index 19)
+    const val = table.rows?.[r]?.c?.[0]?.v;
+    if (!val) continue;
+    const m = String(val).trim().match(/^(.+)\s+\(([A-Z]+)(\d+)\)\s*$/i);
+    if (!m) continue;
+    const matchName = m[1].trim();
+    const colStr    = m[2].toUpperCase();
+    const rowNum    = parseInt(m[3], 10);
+
+    // Convert spreadsheet column letter(s) to 0-based index (A→0, B→1, D→3 …)
+    let colIdx = 0;
+    for (const ch of colStr) colIdx = colIdx * 26 + (ch.charCodeAt(0) - 64);
+    colIdx -= 1;
+
+    named.set(`${rowNum - 1}-${colIdx}`, matchName);
+  }
+  return named;
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
