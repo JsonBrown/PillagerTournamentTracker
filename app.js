@@ -482,7 +482,7 @@ function applySheetOptions(table) {
     img.hidden = false;
   }
 
-  const hideRankings = col(2) === true;
+  const hideRankings = col(2) === 'TRUE';
   const btn = document.querySelector('.tab-btn[data-tab="standings"]');
   if (btn) {
     btn.hidden = hideRankings;
