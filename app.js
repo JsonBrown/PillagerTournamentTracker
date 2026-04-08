@@ -245,7 +245,7 @@ function parsePoolMatchScore(scoreA, scoreB) {
 }
 
 function renderMatchup(m) {
-  if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
+  if (!m.teamA && !m.teamB && !m.matchName) return '<span class="no-matches">—</span>';
 
   let displayA = m.scoreA, displayB = m.scoreB;
   let sA = m.scoreA !== '' ? Number(m.scoreA) : null;
