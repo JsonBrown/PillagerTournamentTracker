@@ -149,7 +149,6 @@ function collectTeams(rounds) {
 function computeStandings(rounds) {
   const stats = new Map();
   let hasPoolMatches = false;
-  const simpleMatches = [];   // deferred until hasPoolMatches is known
 
   const ensureTeam = name => {
     if (!stats.has(name)) {
@@ -181,25 +180,8 @@ function computeStandings(rounds) {
           tB.pointsAllowed += gamesA[i];
         }
       } else {
-        const nA = Number(m.scoreA), nB = Number(m.scoreB);
-        if (isNaN(nA) || isNaN(nB)) continue;
-        simpleMatches.push({ teamA: m.teamA, teamB: m.teamB, nA, nB });
+        continue; // non-pool matches are excluded from rankings
       }
-    }
-  }
-
-  // Apply simple-score matches: W always; GW/GL (score = games won) when mixed with
-  // pool match scoring. Never touch PS/PA — simple scores represent game counts, not points.
-  for (const { teamA, teamB, nA, nB } of simpleMatches) {
-    const tA = ensureTeam(teamA);
-    const tB = ensureTeam(teamB);
-    if (nA > nB) tA.matchesWon++;
-    else if (nB > nA) tB.matchesWon++;
-    if (hasPoolMatches) {
-      tA.gamesWon  += nA;
-      tA.gamesLost += nB;
-      tB.gamesWon  += nB;
-      tB.gamesLost += nA;
     }
   }
 
