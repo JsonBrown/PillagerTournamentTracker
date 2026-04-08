@@ -462,21 +462,31 @@ function renderStandings(rounds, { stats, hasSets }) {
   <div class="standings-legend">${legendItems}</div>`;
 }
 
-// ── Title ─────────────────────────────────────────────────────────────────────
+// ── Sheet options (Column A) ──────────────────────────────────────────────────
+// A1 = tournament name, A2 = logo URL, A3 = hide rankings tab (boolean)
 
-function setTitle(table) {
-  const name = table.rows?.[0]?.c?.[0]?.v;
+function applySheetOptions(table) {
+  const col = (row) => table.rows?.[row]?.c?.[0]?.v;
+
+  const name = col(0);
   if (name) {
     const title = String(name).trim();
     document.querySelector('h1').textContent = title;
     document.title = title;
   }
 
-  const logoUrl = table.rows?.[1]?.c?.[0]?.v;
+  const logoUrl = col(1);
   const img = document.getElementById('site-logo');
   if (logoUrl && img) {
     img.src = String(logoUrl).trim();
     img.hidden = false;
+  }
+
+  const hideRankings = col(2) === true;
+  const btn = document.querySelector('.tab-btn[data-tab="standings"]');
+  if (btn) {
+    btn.hidden = hideRankings;
+    if (hideRankings && activeTab === 'standings') showTab('schedule');
   }
 }
 
@@ -494,7 +504,7 @@ async function loadData() {
   setStatus('Loading…', 'loading');
   try {
     const table  = await fetchSheetData();
-    setTitle(table);
+    applySheetOptions(table);
     const rounds = parseRounds(table);
     cachedRounds = rounds;
     cachedStandings = computeStandings(rounds);
