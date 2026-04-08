@@ -478,6 +478,16 @@ function setTitle(table) {
     img.src = String(logoUrl).trim();
     img.hidden = false;
   }
+
+  const hideRankings = table.rows?.[2]?.c?.[0]?.v === true;
+  applyHideRankings(hideRankings);
+}
+
+function applyHideRankings(hide) {
+  const btn = document.querySelector('.tab-btn[data-tab="standings"]');
+  if (!btn) return;
+  btn.hidden = hide;
+  if (hide && activeTab === 'standings') showTab('schedule');
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────
