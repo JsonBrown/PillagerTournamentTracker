@@ -245,7 +245,7 @@ function parsePoolMatchScore(scoreA, scoreB) {
 }
 
 function renderMatchup(m) {
-  if (!m.teamA && !m.teamB) return '<span class="no-matches">—</span>';
+  if (!m.teamA && !m.teamB && !m.matchName) return '<span class="no-matches">—</span>';
 
   let displayA = m.scoreA, displayB = m.scoreB;
   let sA = m.scoreA !== '' ? Number(m.scoreA) : null;
@@ -353,6 +353,49 @@ function showTab(tab) {
   document.getElementById('standings-content').hidden  = tab !== 'standings';
 }
 
+function renderNamedMatchesSection(rounds) {
+  const matches = [];
+  for (const round of rounds) {
+    for (const m of round.matchups) {
+      if (m.matchName) matches.push(m);
+    }
+  }
+  if (matches.length === 0) return '';
+
+  const cards = matches.map(m => {
+    const sA = m.scoreA !== '' ? Number(m.scoreA) : null;
+    const sB = m.scoreB !== '' ? Number(m.scoreB) : null;
+    const both = sA != null && sB != null;
+    const aWins = both && sA > sB;
+    const bWins = both && sB > sA;
+
+    const teamAName = m.teamA ? stripPoolSuffix(m.teamA) : 'TBD';
+    const teamBName = m.teamB ? stripPoolSuffix(m.teamB) : 'TBD';
+
+    const scoreA = sA != null ? `<span class="named-match-score">${sA}</span>` : '';
+    const scoreB = sB != null ? `<span class="named-match-score">${sB}</span>` : '';
+
+    const hlA = activeTeamFilter && m.teamA === activeTeamFilter ? ' team-filter-highlight' : '';
+    const hlB = activeTeamFilter && m.teamB === activeTeamFilter ? ' team-filter-highlight' : '';
+
+    return `<div class="named-match-card">
+      <div class="named-match-label">${escapeHtml(m.matchName)}</div>
+      <div class="named-match-teams">
+        <div class="named-match-team${aWins ? ' winner' : ''}${hlA}">
+          <span class="named-match-team-name${m.teamA ? '' : ' tbd'}">${escapeHtml(teamAName)}</span>${scoreA}
+        </div>
+        <div class="named-match-vs">vs</div>
+        <div class="named-match-team${bWins ? ' winner' : ''}${hlB}">
+          <span class="named-match-team-name${m.teamB ? '' : ' tbd'}">${escapeHtml(teamBName)}</span>${scoreB}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<h3 class="pool-section-header named-matches-header">Bracket Matches</h3>
+<div class="named-matches-list">${cards}</div>`;
+}
+
 function renderStandings(rounds, { stats, hasPoolMatches }) {
   const el = document.getElementById('standings-content');
   const allTeams = collectTeams(rounds);
@@ -447,7 +490,8 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
     ...((hasPoolMatches || hasPoints) ? ['<span><strong>PS</strong> Points Scored</span>', '<span><strong>PA</strong> Points Allowed</span>', '<span><strong>PD</strong> Point Differential</span>'] : []),
   ].join('');
 
-  el.innerHTML = `${sections}<div class="standings-legend">${legendItems}</div>`;
+  const namedMatchesHtml = renderNamedMatchesSection(rounds);
+  el.innerHTML = `${sections}${namedMatchesHtml}<div class="standings-legend">${legendItems}</div>`;
 }
 
 // ── Sheet options (Column A) ──────────────────────────────────────────────────
