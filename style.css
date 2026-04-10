@@ -206,7 +206,7 @@ h1 {
   display: flex;
   gap: 0;
   padding: 0 24px;
-  max-width: 1400px;
+  /*max-width: 1400px;*/
   margin: 0 auto;
 }
 
@@ -232,7 +232,7 @@ h1 {
 
 /* ── Main content ─────────────────────────────────────── */
 main {
-  max-width: 1400px;
+  /*max-width: 1400px;*/
   margin: 0 auto;
   padding: 28px 24px;
 }
