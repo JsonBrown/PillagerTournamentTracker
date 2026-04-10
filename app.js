@@ -491,7 +491,7 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
   ].join('');
 
   const namedMatchesHtml = renderNamedMatchesSection(rounds);
-  el.innerHTML = `${sections}${namedMatchesHtml}<div class="standings-legend">${legendItems}</div>`;
+  el.innerHTML = `${sections}<div class="standings-legend">${legendItems}</div>${namedMatchesHtml}`;
 }
 
 // ── Sheet options (Column A) ──────────────────────────────────────────────────
