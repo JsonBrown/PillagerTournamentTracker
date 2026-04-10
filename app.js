@@ -522,7 +522,7 @@ function applySheetOptions(table) {
   }
 }
 
-// ── Named matches (Column A, rows 10–20) ─────────────────────────────────────
+// ── Named matches (Column A, rows 10–29) ─────────────────────────────────────
 //
 // Each cell may contain "{match name} ({cell ref})" e.g. "Silver Semifinal (D5)".
 // The cell ref points to the "Team A" cell of the target matchup (1-based, A1 notation).
@@ -530,7 +530,7 @@ function applySheetOptions(table) {
 
 function parseNamedMatches(table) {
   const named = new Map();
-  for (let r = 8; r <= 18; r++) {      // A10 (index 9) … A20 (index 19)
+  for (let r = 8; r <= 27; r++) {      // A10 … A29 (20 named match slots)
     const val = table.rows?.[r]?.c?.[0]?.v;
     if (!val) continue;
     const m = String(val).trim().match(/^(.+)\s+\(([A-Z]+)(\d+)\)\s*$/i);
