@@ -1,60 +1,44 @@
 // ── Config ────────────────────────────────────────────────────────────────────
 const SHEET_ID        = '152jcyxelkCBTir9-U_bcK7D8y1vIvqw1s_FzZ9pCDKY';
+const API_KEY         = 'AIzaSyB3eUXihSpk-5ky9LzeKPS2ytaWjgsTN7o';
 const REFRESH_MS      = 30_000;   // auto-refresh every 30 seconds
 const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 
-// Read optional ?tab=<sheet name> from the page URL.
-// Matches the gviz `sheet` parameter (tab name, case-sensitive).
-// Omitting the parameter selects the first tab (default gviz behaviour).
-const TAB_NAME = new URLSearchParams(window.location.search).get('tab') || null;
-const TEAM_FILTER_KEY = 'teamFilter' + (TAB_NAME ? '_' + TAB_NAME : '');
+// Read optional ?tab=<sheet name> from the page URL (tab name, case-sensitive).
+// The Sheets API v4 requires an explicit tab name; 'Sheet1' is used when the
+// parameter is omitted.
+const TAB_NAME = new URLSearchParams(window.location.search).get('tab') || 'Sheet1';
+const TEAM_FILTER_KEY = 'teamFilter_' + TAB_NAME;
 
 let refreshTimer     = null;
 let cachedRounds     = null;
 let cachedStandings  = null;
 let activeTeamFilter = '';
 
-// ── Fetch via Google Visualization JSONP ──────────────────────────────────────
-//
-// The gviz/tq endpoint supports a JSONP-style call via the `responseHandler`
-// option inside the `tqx` parameter.  This avoids any CORS issues with
-// public sheets that are shared "anyone with the link can view".
+// ── Fetch via Google Sheets API v4 ───────────────────────────────────────────
 
-function fetchSheetData() {
-  return new Promise((resolve, reject) => {
-    const cbName = '__gviz_' + Date.now();
-    const script  = document.createElement('script');
+async function fetchSheetData() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/`
+            + `${encodeURIComponent(TAB_NAME)}?key=${API_KEY}`;
 
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('Request timed out'));
-    }, FETCH_TIMEOUT);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
-    window[cbName] = function (response) {
-      clearTimeout(timer);
-      cleanup();
-      if (response && response.status === 'ok') {
-        resolve(response.table);
-      } else {
-        const detail = response?.errors?.[0]?.detailed_message
-                    || response?.errors?.[0]?.message
-                    || 'Unknown error from Google Sheets';
-        reject(new Error(detail));
-      }
-    };
+  let response;
+  try {
+    response = await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 
-    function cleanup() {
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    const msg  = body?.error?.message || `HTTP ${response.status}`;
+    throw new Error(msg);
+  }
 
-    script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('Network error')); };
-    const tabParam = TAB_NAME ? `&sheet=${encodeURIComponent(TAB_NAME)}` : '';
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`
-               + `?tqx=out:json;responseHandler:${cbName}${tabParam}`
-               + `&_=${Date.now()}`;
-    document.head.appendChild(script);
-  });
+  const data = await response.json();
+  return data.values ?? [];   // 2-D array of strings; [] if sheet is empty
 }
 
 // ── Parse column headers → court definitions ──────────────────────────────────
@@ -88,38 +72,25 @@ function parseCourts(headers) {
   return sorted.map((c, i) => ({ ...c, idx: i }));
 }
 
-// ── Turn a gviz table into plain round objects ────────────────────────────────
+// ── Turn a values[][] array into plain round objects ──────────────────────────
 
-function parseRounds(table) {
-  const headers      = table.cols.map(c => c.label ?? '');
+function parseRounds(values) {
+  const headers      = values[0] ?? [];
   const courts       = parseCourts(headers);
-  const namedMatches = parseNamedMatches(table);
+  const namedMatches = parseNamedMatches(values);
 
   const cell = (row, idx) => {
     if (idx == null) return '';
-    const v = row.c?.[idx]?.v;
+    const v = row[idx];
     return v != null ? String(v).trim() : '';
   };
 
-  // gviz returns time-of-day columns as [hours, minutes, seconds, ms].
-  // Prefer the sheet's pre-formatted string (.f) when present; otherwise
-  // build "9AM" / "9:30AM" from the array.
   const timeCell = (row, idx) => {
-    const col = row.c?.[idx];
-    if (!col) return '';
-    if (col.f != null) return String(col.f).trim();
-    const v = col.v;
-    if (v == null) return '';
-    if (Array.isArray(v)) {
-      const [h, m] = v;
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const h12  = h % 12 || 12;
-      return m === 0 ? `${h12}${ampm}` : `${h12}:${String(m).padStart(2, '0')}${ampm}`;
-    }
-    return String(v).trim();
+    const v = row[idx];
+    return v != null ? String(v).trim() : '';
   };
 
-  return table.rows.map((row, rowIdx) => ({
+  return values.slice(1).map((row, rowIdx) => ({
     time:     timeCell(row, 2),
     matchups: courts.map(ct => ({
       court:     ct.name,
@@ -498,8 +469,8 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
 // ── Sheet options (Column A) ──────────────────────────────────────────────────
 // A1 = tournament name, A2 = logo URL, A3 = hide rankings tab (boolean)
 
-function applySheetOptions(table) {
-  const col = (row) => table.rows?.[row]?.c?.[0]?.v;
+function applySheetOptions(values) {
+  const col = (row) => values[row]?.[0];
 
   const name = col(0);
   if (name) {
@@ -529,10 +500,10 @@ function applySheetOptions(table) {
 // The cell ref points to the "Team A" cell of the target matchup (1-based, A1 notation).
 // Returns a Map keyed by "rowIdx-colIdx" (both 0-based) → label string.
 
-function parseNamedMatches(table) {
+function parseNamedMatches(values) {
   const named = new Map();
-  for (let r = 8; r <= 27; r++) {      // A10 … A29 (20 named match slots)
-    const val = table.rows?.[r]?.c?.[0]?.v;
+  for (let r = 9; r <= 28; r++) {      // values[9..28] = sheet rows 10–29 (values[0] = header)
+    const val = values[r]?.[0];
     if (!val) continue;
     const m = String(val).trim().match(/^(.+)\s+\(([A-Z]+)(\d+)\)\s*$/i);
     if (!m) continue;
@@ -563,9 +534,9 @@ function setStatus(text, state /* 'live' | 'loading' | 'error' | 'idle' */) {
 async function loadData() {
   setStatus('Loading…', 'loading');
   try {
-    const table  = await fetchSheetData();
-    applySheetOptions(table);
-    const rounds = parseRounds(table);
+    const values = await fetchSheetData();
+    applySheetOptions(values);
+    const rounds = parseRounds(values);
     cachedRounds = rounds;
     cachedStandings = computeStandings(rounds);
     populateTeamFilter(collectTeams(rounds));

@@ -79,20 +79,20 @@ const {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Build a minimal gviz table object used by parseRounds / setTitle. */
-function makeTable(headers, rows) {
-  return {
-    cols: headers.map(label => ({ label })),
-    rows: rows.map(cells => ({
-      c: cells.map(cell =>
+/** Build a values[][] array (Sheets API v4 shape) used by parseRounds. */
+function makeTable(headers, dataRows) {
+  return [
+    headers,
+    ...dataRows.map(cells =>
+      cells.map(cell =>
         cell == null
-          ? null
-          : typeof cell === 'object'
-            ? cell           // allow { v, f } objects
-            : { v: cell }
-      ),
-    })),
-  };
+          ? undefined
+          : typeof cell === 'object' && 'f' in cell ? cell.f
+          : typeof cell === 'object' && 'v' in cell ? String(cell.v ?? '')
+          : String(cell)
+      )
+    ),
+  ];
 }
 
 /** Build a minimal round as returned by parseRounds. */
@@ -307,41 +307,41 @@ describe('parseRounds', () => {
     'Court #1 Team B', 'Court #1 Score B',
   ];
 
-  it('formats time array [9,0,0,0] as "9AM"', () => {
+  it('passes through time string "9:00 AM" unchanged', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [9, 0, 0, 0] }, 'Eagles', '25', 'Falcons', '18'],
+      [null, null, '9:00 AM', 'Eagles', '25', 'Falcons', '18'],
     ]);
     const rounds = parseRounds(table);
-    assert.equal(rounds[0].time, '9AM');
+    assert.equal(rounds[0].time, '9:00 AM');
   });
 
-  it('formats time array [9,30,0,0] as "9:30AM"', () => {
+  it('passes through time string "9:30 AM" unchanged', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [9, 30, 0, 0] }, 'Eagles', '25', 'Falcons', '18'],
+      [null, null, '9:30 AM', 'Eagles', '25', 'Falcons', '18'],
     ]);
     const rounds = parseRounds(table);
-    assert.equal(rounds[0].time, '9:30AM');
+    assert.equal(rounds[0].time, '9:30 AM');
   });
 
-  it('formats time array [13,0,0,0] as "1PM"', () => {
+  it('passes through time string "1:00 PM" unchanged', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [13, 0, 0, 0] }, 'Eagles', '25', 'Falcons', '18'],
+      [null, null, '1:00 PM', 'Eagles', '25', 'Falcons', '18'],
     ]);
     const rounds = parseRounds(table);
-    assert.equal(rounds[0].time, '1PM');
+    assert.equal(rounds[0].time, '1:00 PM');
   });
 
-  it('formats time array [12,0,0,0] as "12PM"', () => {
+  it('passes through time string "12:00 PM" unchanged', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [12, 0, 0, 0] }, 'Eagles', '25', 'Falcons', '18'],
+      [null, null, '12:00 PM', 'Eagles', '25', 'Falcons', '18'],
     ]);
     const rounds = parseRounds(table);
-    assert.equal(rounds[0].time, '12PM');
+    assert.equal(rounds[0].time, '12:00 PM');
   });
 
-  it('prefers pre-formatted .f string over .v array', () => {
+  it('passes through time string from sheet as-is', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [9, 0, 0, 0], f: '9:00 AM' }, 'Eagles', '25', 'Falcons', '18'],
+      [null, null, '9:00 AM', 'Eagles', '25', 'Falcons', '18'],
     ]);
     const rounds = parseRounds(table);
     assert.equal(rounds[0].time, '9:00 AM');
@@ -349,8 +349,8 @@ describe('parseRounds', () => {
 
   it('produces one matchup per court per round', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [9, 0, 0, 0] }, 'Eagles', '25', 'Falcons', '18'],
-      [null, null, { v: [10, 0, 0, 0] }, 'Hawks', '22', 'Owls', '25'],
+      [null, null, '9:00 AM', 'Eagles', '25', 'Falcons', '18'],
+      [null, null, '10:00 AM', 'Hawks', '22', 'Owls', '25'],
     ]);
     const rounds = parseRounds(table);
     assert.equal(rounds.length, 2);
@@ -362,7 +362,7 @@ describe('parseRounds', () => {
 
   it('returns empty string for null cell values', () => {
     const table = makeTable(BASE_HEADERS, [
-      [null, null, { v: [9, 0, 0, 0] }, null, null, null, null],
+      [null, null, '9:00 AM', null, null, null, null],
     ]);
     const rounds = parseRounds(table);
     const m = rounds[0].matchups[0];
@@ -375,7 +375,7 @@ describe('parseRounds', () => {
   it('sets scoreA/scoreB to empty string when court has no score columns', () => {
     const headers = ['Options', 'Notes', 'Time', 'Court #1 Team A', 'Court #1 Team B'];
     const table = makeTable(headers, [
-      [null, null, { v: [9, 0, 0, 0] }, 'Eagles', 'Falcons'],
+      [null, null, '9:00 AM', 'Eagles', 'Falcons'],
     ]);
     const rounds = parseRounds(table);
     assert.equal(rounds[0].matchups[0].scoreA, '');
