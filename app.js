@@ -151,46 +151,93 @@ function collectTeams(rounds) {
 
 function computeStandings(rounds) {
   const stats = new Map();
-  let hasPoolMatches = false;
 
   const ensureTeam = name => {
     if (!stats.has(name)) {
-      stats.set(name, { matchesWon: 0, gamesWon: 0, gamesLost: 0, pointsScored: 0, pointsAllowed: 0 });
+      stats.set(name, { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 });
     }
     return stats.get(name);
   };
 
+  // First pass: determine if any match uses comma-separated set scores
+  let hasSets = false;
+  for (const round of rounds) {
+    for (const m of round.matchups) {
+      if (String(m.scoreA).includes(',') || String(m.scoreB).includes(',')) {
+        hasSets = true;
+        break;
+      }
+    }
+    if (hasSets) break;
+  }
+
+  // Second pass: accumulate stats
   for (const round of rounds) {
     for (const m of round.matchups) {
       if (!m.teamA || !m.teamB) continue;
       if (m.scoreA === '' || m.scoreB === '') continue;
 
+      const tA = ensureTeam(m.teamA);
+      const tB = ensureTeam(m.teamB);
+
       if (String(m.scoreA).includes(',') || String(m.scoreB).includes(',')) {
-        hasPoolMatches = true;
-        const { matchA, matchB, gamesA, gamesB, len } = parsePoolMatchScore(m.scoreA, m.scoreB);
-        const tA = ensureTeam(m.teamA);
-        const tB = ensureTeam(m.teamB);
+        const { matchA, matchB, setsA, setsB, len } = setsToMatchScore(m.scoreA, m.scoreB);
         if (matchA > matchB) tA.matchesWon++;
         else if (matchB > matchA) tB.matchesWon++;
         for (let i = 0; i < len; i++) {
-          tA.gamesWon      += gamesA[i] > gamesB[i] ? 1 : 0;
-          tA.gamesLost     += gamesB[i] > gamesA[i] ? 1 : 0;
-          tA.pointsScored  += gamesA[i];
-          tA.pointsAllowed += gamesB[i];
-          tB.gamesWon      += gamesB[i] > gamesA[i] ? 1 : 0;
-          tB.gamesLost     += gamesA[i] > gamesB[i] ? 1 : 0;
-          tB.pointsScored  += gamesB[i];
-          tB.pointsAllowed += gamesA[i];
+          tA.setsWon      += setsA[i] > setsB[i] ? 1 : 0;
+          tA.setsLost     += setsB[i] > setsA[i] ? 1 : 0;
+          tA.pointsScored  += setsA[i];
+          tA.pointsAllowed += setsB[i];
+          tB.setsWon      += setsB[i] > setsA[i] ? 1 : 0;
+          tB.setsLost     += setsA[i] > setsB[i] ? 1 : 0;
+          tB.pointsScored  += setsB[i];
+          tB.pointsAllowed += setsA[i];
         }
       } else {
-        continue; // non-pool matches are excluded from rankings
+        const sA = Number(m.scoreA);
+        const sB = Number(m.scoreB);
+        if (sA > sB) tA.matchesWon++;
+        else if (sB > sA) tB.matchesWon++;
+        if (hasSets) {
+          // In mixed mode, simple scores are treated as set counts
+          tA.setsWon  += sA;
+          tA.setsLost += sB;
+          tB.setsWon  += sB;
+          tB.setsLost += sA;
+        }
       }
     }
   }
 
-  return { stats, hasPoolMatches };
+  return { stats, hasSets };
 }
 
+function buildRankMap(rounds, { stats, hasSets }) {
+  // Include teams with at least one win or at least one point scored
+  const eligible = [...stats.entries()].filter(([, s]) => s.matchesWon > 0 || s.pointsScored > 0);
+
+  // Sort: matchesWon desc, then (if hasSets) pointsScored desc, then name asc
+  eligible.sort(([nameA, sA], [nameB, sB]) =>
+    (sB.matchesWon - sA.matchesWon) ||
+    (hasSets ? sB.pointsScored - sA.pointsScored : 0) ||
+    nameA.localeCompare(nameB)
+  );
+
+  // Standard competition ranking (1, 1, 3...)
+  const rankMap = new Map();
+  let rankCounter = 1;
+  for (let i = 0; i < eligible.length; i++) {
+    const [name, s] = eligible[i];
+    const isTie = i > 0 &&
+      s.matchesWon === eligible[i - 1][1].matchesWon &&
+      (!hasSets || s.pointsScored === eligible[i - 1][1].pointsScored);
+    rankMap.set(name, isTie ? rankMap.get(eligible[i - 1][0]) : rankCounter);
+    rankCounter++;
+  }
+
+  return rankMap;
+}
 
 function populateTeamFilter(teams) {
   const sel = document.getElementById('team-filter');
@@ -233,19 +280,24 @@ function courtClass(idx) {
   return `court-${idx}`;
 }
 
-function parsePoolMatchScore(scoreA, scoreB) {
-  const gamesA = String(scoreA).split(',').map(s => Number(s.trim()));
-  const gamesB = String(scoreB).split(',').map(s => Number(s.trim()));
-  const len = Math.min(gamesA.length, gamesB.length);
+function setsToMatchScore(scoreA, scoreB) {
+  const setsA = String(scoreA).split(',').map(s => Number(s.trim()));
+  const setsB = String(scoreB).split(',').map(s => Number(s.trim()));
+  const len = Math.min(setsA.length, setsB.length);
   let matchA = 0, matchB = 0;
   for (let i = 0; i < len; i++) {
-    if (gamesA[i] > gamesB[i]) matchA++;
-    else if (gamesB[i] > gamesA[i]) matchB++;
+    if (setsA[i] > setsB[i]) matchA++;
+    else if (setsB[i] > setsA[i]) matchB++;
   }
+  return { matchA, matchB, setsA, setsB, len };
+}
+
+function parsePoolMatchScore(scoreA, scoreB) {
+  const { matchA, matchB, setsA: gamesA, setsB: gamesB, len } = setsToMatchScore(scoreA, scoreB);
   return { matchA, matchB, gamesA, gamesB, len };
 }
 
-function renderMatchup(m) {
+function renderMatchup(m, rankMap = null) {
   if (!m.teamA && !m.teamB && !m.matchName) return '<span class="no-matches">—</span>';
 
   let displayA = m.scoreA, displayB = m.scoreB;
@@ -269,8 +321,14 @@ function renderMatchup(m) {
   const scoreTag = (s) =>
     s != null && s !== '' ? `<span class="team-score">${s}</span>` : '';
 
+  const rankBadge = (name) => {
+    if (!rankMap || !name) return '';
+    const rank = rankMap.get(name);
+    return rank != null ? `<span class="team-rank">#${rank}</span>` : '';
+  };
+
   const poolMatchAttr = poolMatchData
-    ? ` data-games="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
+    ? ` data-sets="${m.scoreA}|${m.scoreB}" data-teams="${escapeHtml(m.teamA)}|${escapeHtml(m.teamB)}" style="cursor:pointer"`
     : '';
 
   const nameBadge = m.matchName
@@ -279,11 +337,11 @@ function renderMatchup(m) {
 
   return `<div class="match-teams"${poolMatchAttr}>
   ${nameBadge}<div class="team-row${aWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamA ? stripPoolSuffix(m.teamA) : '—'}</span>${scoreTag(displayA)}
+    ${rankBadge(m.teamA)}<span class="team-players">${m.teamA ? stripPoolSuffix(m.teamA) : '—'}</span>${scoreTag(displayA)}
   </div>
   <div class="vs-divider">vs</div>
   <div class="team-row${bWins ? ' winner' : ''}">
-    <span class="team-players">${m.teamB ? stripPoolSuffix(m.teamB) : '—'}</span>${scoreTag(displayB)}
+    ${rankBadge(m.teamB)}<span class="team-players">${m.teamB ? stripPoolSuffix(m.teamB) : '—'}</span>${scoreTag(displayB)}
   </div>
 </div>`;
 }
@@ -397,7 +455,7 @@ function renderNamedMatchesSection(rounds) {
 <div class="named-matches-list">${cards}</div>`;
 }
 
-function renderStandings(rounds, { stats, hasPoolMatches }) {
+function renderStandings(rounds, { stats, hasSets }) {
   const el = document.getElementById('standings-content');
   const allTeams = collectTeams(rounds);
 
@@ -409,8 +467,8 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
   const hasPoints = [...stats.values()].some(s => s.pointsScored > 0);
 
   const rows = allTeams.map(name => {
-    const s = stats.get(name) ?? { matchesWon: 0, gamesWon: 0, gamesLost: 0, pointsScored: 0, pointsAllowed: 0 };
-    return { name, pool: extractPool(name), wins: s.matchesWon, gamesWon: s.gamesWon, gamesLost: s.gamesLost,
+    const s = stats.get(name) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+    return { name, pool: extractPool(name), wins: s.matchesWon, setsWon: s.setsWon, setsLost: s.setsLost,
              pointsScored: s.pointsScored, pointsAllowed: s.pointsAllowed,
              pointDiff: s.pointsScored - s.pointsAllowed };
   });
@@ -435,8 +493,8 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
   const fmt = n => n > 0 ? `+${n}` : `${n}`;
   const pdClass = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
 
-  const extraHead = hasPoolMatches
-    ? '<th title="Games Won">GW</th><th title="Games Lost">GL</th><th title="Points Scored">PS</th><th title="Points Allowed">PA</th><th title="Point Differential">PD</th>'
+  const extraHead = hasSets
+    ? '<th title="Sets Won">SW</th><th title="Sets Lost">SL</th><th title="Points Scored">PS</th><th title="Points Allowed">PA</th><th title="Point Differential">PD</th>'
     : hasPoints
       ? '<th title="Points Scored">PS</th><th title="Points Allowed">PA</th><th title="Point Differential">PD</th>'
       : '';
@@ -460,8 +518,8 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
       rankCounter++;
     });
     const tableRows = poolRows.map(r => {
-      const extraData = hasPoolMatches
-        ? `<td>${r.gamesWon}</td><td>${r.gamesLost}</td><td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
+      const extraData = hasSets
+        ? `<td>${r.setsWon}</td><td>${r.setsLost}</td><td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
         : hasPoints
           ? `<td>${r.pointsScored}</td><td>${r.pointsAllowed}</td><td class="${pdClass(r.pointDiff)}">${fmt(r.pointDiff)}</td>`
           : '';
@@ -487,8 +545,8 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
   const legendItems = [
     '<span><strong>#</strong> Rank</span>',
     '<span><strong>W</strong> Wins</span>',
-    ...(hasPoolMatches ? ['<span><strong>GW</strong> Games Won</span>', '<span><strong>GL</strong> Games Lost</span>'] : []),
-    ...((hasPoolMatches || hasPoints) ? ['<span><strong>PS</strong> Points Scored</span>', '<span><strong>PA</strong> Points Allowed</span>', '<span><strong>PD</strong> Point Differential</span>'] : []),
+    ...(hasSets ? ['<span><strong>SW</strong> Sets Won</span>', '<span><strong>SL</strong> Sets Lost</span>'] : []),
+    ...((hasSets || hasPoints) ? ['<span><strong>PS</strong> Points Scored</span>', '<span><strong>PA</strong> Points Allowed</span>', '<span><strong>PD</strong> Point Differential</span>'] : []),
   ].join('');
 
   const namedMatchesHtml = renderNamedMatchesSection(rounds);
@@ -621,9 +679,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Pool match detail popup — event delegation on the content area
   document.getElementById('tournament-content').addEventListener('click', e => {
-    const card = e.target.closest('[data-games]');
+    const card = e.target.closest('[data-sets]');
     if (!card) return;
-    const [rawA, rawB] = card.dataset.games.split('|');
+    const [rawA, rawB] = card.dataset.sets.split('|');
     const [teamAName, teamBName] = (card.dataset.teams || '|').split('|');
     const { matchA, matchB, gamesA, gamesB, len } = parsePoolMatchScore(rawA, rawB);
     const rows = Array.from({ length: len }, (_, i) =>
@@ -637,9 +695,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let statsHtml = '';
     if (cachedStandings && teamAName && teamBName) {
-      const { stats, hasPoolMatches } = cachedStandings;
-      const sA = stats.get(teamAName) ?? { matchesWon: 0, gamesWon: 0, gamesLost: 0, pointsScored: 0, pointsAllowed: 0 };
-      const sB = stats.get(teamBName) ?? { matchesWon: 0, gamesWon: 0, gamesLost: 0, pointsScored: 0, pointsAllowed: 0 };
+      const { stats, hasSets } = cachedStandings;
+      const sA = stats.get(teamAName) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
+      const sB = stats.get(teamBName) ?? { matchesWon: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsAllowed: 0 };
       const pdA = sA.pointsScored - sA.pointsAllowed;
       const pdB = sB.pointsScored - sB.pointsAllowed;
       const fmt = n => n > 0 ? `+${n}` : `${n}`;
@@ -661,9 +719,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // statDefs: [label, totalA, totalB, isPd, matchDeltaA, matchDeltaB]
       const statDefs = [
         ['Wins',              sA.matchesWon,    sB.matchesWon,    false, mWinA,       mWinB],
-        ...(hasPoolMatches ? [
-          ['Games Won',       sA.gamesWon,      sB.gamesWon,      false, mGamesWonA,  mGamesWonB],
-          ['Games Lost',      sA.gamesLost,     sB.gamesLost,     false, mGamesLostA, mGamesLostB],
+        ...(hasSets ? [
+          ['Sets Won',        sA.setsWon,       sB.setsWon,       false, mGamesWonA,  mGamesWonB],
+          ['Sets Lost',       sA.setsLost,      sB.setsLost,      false, mGamesLostA, mGamesLostB],
           ['Points Scored',   sA.pointsScored,  sB.pointsScored,  false, mPSA,        mPSB],
           ['Points Allowed',  sA.pointsAllowed, sB.pointsAllowed, false, mPAA,        mPAB],
           ['Point Differential', pdA,           pdB,              true,  mPDA,        mPDB],
@@ -705,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const popup = document.getElementById('pool-popup');
     if (!popup.classList.contains('hidden') &&
         !popup.contains(e.target) &&
-        !e.target.closest('[data-games]')) {
+        !e.target.closest('[data-sets]')) {
       popup.classList.add('hidden');
     }
   });
