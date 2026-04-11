@@ -51,7 +51,8 @@ function fetchSheetData() {
     script.onerror = () => { clearTimeout(timer); cleanup(); reject(new Error('Network error')); };
     const tabParam = TAB_NAME ? `&sheet=${encodeURIComponent(TAB_NAME)}` : '';
     script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`
-               + `?tqx=out:json;responseHandler:${cbName}${tabParam}`;
+               + `?tqx=out:json;responseHandler:${cbName}${tabParam}`
+               + `&_=${Date.now()}`;
     document.head.appendChild(script);
   });
 }
