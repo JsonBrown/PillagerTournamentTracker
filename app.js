@@ -442,9 +442,9 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
       : '';
 
   const renderPoolTable = (poolRows) => {
-    // Rank: wins desc → points scored desc → point differential desc → name asc
+    // Rank: games won desc → points scored desc → point differential desc → name asc
     poolRows.sort((a, b) =>
-      b.wins - a.wins ||
+      b.gamesWon - a.gamesWon ||
       b.pointsScored - a.pointsScored ||
       b.pointDiff - a.pointDiff ||
       a.name.localeCompare(b.name)
@@ -452,7 +452,7 @@ function renderStandings(rounds, { stats, hasPoolMatches }) {
     // Standard competition ranking (1,1,3…)
     let rankCounter = 1;
     poolRows.forEach((r, i) => {
-      r.rank = i > 0 && r.wins === poolRows[i - 1].wins &&
+      r.rank = i > 0 && r.gamesWon === poolRows[i - 1].gamesWon &&
                r.pointsScored === poolRows[i - 1].pointsScored &&
                r.pointDiff === poolRows[i - 1].pointDiff
         ? poolRows[i - 1].rank
