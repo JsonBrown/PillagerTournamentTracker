@@ -1,7 +1,7 @@
 // ── Config ────────────────────────────────────────────────────────────────────
 const SHEET_ID        = '152jcyxelkCBTir9-U_bcK7D8y1vIvqw1s_FzZ9pCDKY';
 const API_KEY         = 'AIzaSyB3eUXihSpk-5ky9LzeKPS2ytaWjgsTN7o';
-const REFRESH_MS      = 60_000;   // auto-refresh every 60 seconds
+const REFRESH_MS      = 120_000;  // auto-refresh every 2 minutes
 const FETCH_TIMEOUT   = 10_000;   // 10 second network timeout
 
 // Read optional ?tab=<sheet name> from the page URL (tab name, case-sensitive).
@@ -543,10 +543,10 @@ async function loadData() {
     renderAll(rounds);
     renderStandings(rounds, cachedStandings);
     const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setStatus(`Updated ${t} · refreshes every 60 s`, 'live');
+    setStatus(`Updated ${t} · refreshes every 2 min`, 'live');
   } catch (err) {
     console.error('[Tournament Tracker]', err);
-    setStatus('Failed to load — retrying in 60 s', 'error');
+    setStatus('Failed to load — retrying in 2 min', 'error');
     document.getElementById('tournament-content').innerHTML =
       `<p class="error-msg">Could not load sheet data: ${err.message}</p>`;
   }
