@@ -40,7 +40,7 @@ No installation, compilation, or build step is ever required.
 |---|---|---|
 | `SHEET_ID` | `'152jcyxelkCBTir9-U_bcK7D8y1vIvqw1s_FzZ9pCDKY'` | Google Sheets document ID |
 | `API_KEY` | `'AIzaSyB3eUXihSpk-5ky9LzeKPS2ytaWjgsTN7o'` | Google Sheets API v4 key |
-| `REFRESH_MS` | `30_000` | Auto-refresh interval (ms) |
+| `REFRESH_MS` | `60_000` | Auto-refresh interval (ms) |
 | `FETCH_TIMEOUT` | `10_000` | Network request timeout (ms) |
 
 To point the tracker at a different sheet, change `SHEET_ID` (and `API_KEY` if the key is scoped to a specific project). The sheet must be shared as "Anyone with the link can view".
