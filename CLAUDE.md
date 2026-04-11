@@ -39,10 +39,11 @@ No installation, compilation, or build step is ever required.
 | Constant | Value | Purpose |
 |---|---|---|
 | `SHEET_ID` | `'152jcyxelkCBTir9-U_bcK7D8y1vIvqw1s_FzZ9pCDKY'` | Google Sheets document ID |
-| `REFRESH_MS` | `30_000` | Auto-refresh interval (ms) |
+| `API_KEY` | `'AIzaSyB3eUXihSpk-5ky9LzeKPS2ytaWjgsTN7o'` | Google Sheets API v4 key |
+| `REFRESH_MS` | `120_000` | Auto-refresh interval (ms) |
 | `FETCH_TIMEOUT` | `10_000` | Network request timeout (ms) |
 
-To point the tracker at a different sheet, change `SHEET_ID`. The sheet must be shared as "Anyone with the link can view".
+To point the tracker at a different sheet, change `SHEET_ID` (and `API_KEY` if the key is scoped to a specific project). The sheet must be shared as "Anyone with the link can view".
 
 ---
 
@@ -51,11 +52,11 @@ To point the tracker at a different sheet, change `SHEET_ID`. The sheet must be 
 ```
 Google Sheet (public)
       │
-      ▼  JSONP via Google Visualization API (/gviz/tq endpoint)
-fetchSheetData()          → resolves with a gviz table object
+      ▼  REST GET via Google Sheets API v4 (/v4/spreadsheets/…/values/{tab})
+fetchSheetData()          → resolves with values[][] (2-D array of strings)
       │
       ▼
-parseRounds(table)        → calls parseCourts(headers) internally
+parseRounds(values)       → calls parseCourts(headers) internally
       │                      returns Array<{ time, matchups[] }>
       ▼
 renderAll(rounds)         → calls renderRound → renderMatchup
@@ -71,7 +72,7 @@ Auto-refresh is driven by `scheduleRefresh()` (setTimeout chain). Manual refresh
 ## Google Sheet Column Layout
 
 Column A is **ignored** (reserved for notes/comments).
-Column B is the **time-of-day** for each round (displayed as e.g. `9AM`, `9:30AM`).
+Column B is the **time-of-day** for each round (displayed verbatim as returned by the sheet, e.g. `9:00 AM`, `9:30 AM`).
 Columns C onward define courts. Headers must follow the pattern:
 
 | Columns required |
@@ -115,16 +116,24 @@ Courts are sorted numerically by their number. Rows without a time value are ski
 
 ## Changing the Data Source
 
-Replace `SHEET_ID` at the top of `app.js` with the ID of another public Google Sheet (the long string between `/d/` and `/edit` in the sheet URL). The new sheet must follow the same column naming conventions described above.
+Replace `SHEET_ID` at the top of `app.js` with the ID of another public Google Sheet (the long string between `/d/` and `/edit` in the sheet URL). Update `API_KEY` if the key is scoped to a different project. The new sheet must follow the same column naming conventions described above.
+
+The `?tab=` URL parameter selects which sheet tab to load (case-sensitive). If omitted, defaults to `'Sheet1'`. Unlike the old gviz endpoint, the Sheets API v4 requires an explicit tab name — ensure the default matches your sheet's actual first tab name.
 
 ---
 
 ## Testing
 
-There is no automated test suite. Verify changes manually:
+A unit test suite lives in `tests/unit.test.mjs`. Run it with:
+
+```bash
+node --test tests/unit.test.mjs
+```
+
+Verify changes manually:
 
 1. Open `index.html` in a browser with the network tab open.
-2. Confirm the JSONP script tag is injected and the callback fires.
+2. Confirm a `GET` request fires to `sheets.googleapis.com/v4/spreadsheets/…` (no JSONP script tag).
 3. Check the status dot transitions: `dot-loading` → `dot-live` on success, `dot-error` on failure.
 4. Simulate a network error by temporarily setting `SHEET_ID` to an invalid value and confirm the error message renders.
 5. Confirm auto-refresh fires after 30 seconds (watch the "Updated HH:MM" timestamp change).
@@ -140,7 +149,7 @@ Drop the three files (`index.html`, `app.js`, `style.css`) onto any static host:
 - Any web server (nginx, Apache, Caddy)
 - A local machine with `python -m http.server`
 
-No environment variables, secrets, or server-side logic are needed. The only external call is to `docs.google.com`.
+No environment variables, secrets, or server-side logic are needed. The only external call is to `sheets.googleapis.com`.
 
 ---
 
