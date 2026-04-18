@@ -640,6 +640,12 @@ main {
   font-weight: 700;
 }
 
+.h2h-pd-row {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--color-border);
+}
+
 /* ── Popup stats section ──────────────────────────────── */
 .stats-section {
   margin-top: 10px;
