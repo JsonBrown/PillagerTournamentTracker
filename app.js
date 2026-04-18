@@ -635,6 +635,17 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`
     ).join('');
 
+    let h2hPD = 0;
+    for (let i = 0; i < len; i++) h2hPD += gamesA[i] - gamesB[i];
+    const fmtPD = n => n > 0 ? `+${n}` : `${n}`;
+    const pdCls = n => n > 0 ? 'pd-pos' : n < 0 ? 'pd-neg' : '';
+    const pdRow = `<div class="game-row h2h-pd-row">
+      <span class="game-label">PD</span>
+      <span class="${pdCls(h2hPD)}">${fmtPD(h2hPD)}</span>
+      <span class="game-dash">–</span>
+      <span class="${pdCls(-h2hPD)}">${fmtPD(-h2hPD)}</span>
+    </div>`;
+
     let statsHtml = '';
     if (cachedStandings && teamAName && teamBName) {
       const { stats, hasPoolMatches } = cachedStandings;
@@ -688,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const popup = document.getElementById('pool-popup');
-    popup.querySelector('.pool-popup-body').innerHTML = rows; // + statsHtml;
+    popup.querySelector('.pool-popup-body').innerHTML = rows + pdRow; // + statsHtml;
     const cell = card.closest('td') || card;
     const rect = cell.getBoundingClientRect();
     popup.style.top      = `${rect.bottom + window.scrollY + 6}px`;
