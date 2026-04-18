@@ -698,8 +698,13 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>`;
     }
 
+    const teamHeader = `<div class="popup-teams-header">
+      <span class="popup-team-name">${escapeHtml(stripPoolSuffix(teamAName))}</span>
+      <span class="popup-teams-vs">vs</span>
+      <span class="popup-team-name">${escapeHtml(stripPoolSuffix(teamBName))}</span>
+    </div>`;
     const popup = document.getElementById('pool-popup');
-    popup.querySelector('.pool-popup-body').innerHTML = rows + pdRow; // + statsHtml;
+    popup.querySelector('.pool-popup-body').innerHTML = teamHeader + rows + pdRow; // + statsHtml;
     const cell = card.closest('td') || card;
     const rect = cell.getBoundingClientRect();
     popup.style.top      = `${rect.bottom + window.scrollY + 6}px`;
